@@ -1,4 +1,4 @@
-// voice-service.js - Serverless Voice AI Engine with Multi-Layer Log Stack & Copy Utilities
+// voice-service.js - Direct-Decoded Serverless Voice Engine
 const VoiceService = {
     active: false,
     recorder: null,
@@ -32,8 +32,8 @@ const VoiceService = {
     copyDiagnosticsToClipboard: () => {
         const textToCopy = VoiceService.systemLogsCollection.join("\n");
         navigator.clipboard.writeText(textToCopy)
-            .then(() => alert("Logs copied to tablet clipboard! Paste them to Gemini."))
-            .catch(() => alert("Clipboard block. Select the text inside log cards manually."));
+            .then(() => alert("Logs copied successfully!"))
+            .catch(() => alert("Clipboard block. Copy manually."));
     },
     
     toggle: async () => {
@@ -67,7 +67,7 @@ const VoiceService = {
                             text += event.results[i][0].transcript;
                         }
                         const previewNode = document.getElementById('voice-live-preview-box');
-                        if (previewNode) previewNode.innerText = text || "Capturing speech waveforms...";
+                        if (previewNode) previewNode.innerText = text || "Capturing speech...";
                     };
                     VoiceService.liveRecognizer.start();
                 }
@@ -78,9 +78,9 @@ const VoiceService = {
                 btn?.classList.add('bg-red-500/20', 'text-red-500', 'border-red-500/40');
                 overlay?.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "Speak now...";
-                VoiceService.addLogNotification("Mic Status", "Hardware recording tracking connection active.");
+                VoiceService.addLogNotification("Mic Status", "Recording pipeline initialized.");
             } catch (e) { 
-                alert("Microphone capture access hardware fault: " + e.message); 
+                alert("Microphone connection failed: " + e.message); 
             }
         } else {
             VoiceService.active = false;
@@ -89,68 +89,67 @@ const VoiceService = {
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") {
                 VoiceService.recorder.stop();
-                VoiceService.addLogNotification("Mic Status", "Audio capture track successfully packaged.");
+                VoiceService.addLogNotification("Mic Status", "Audio segment closed.");
             }
         }
     },
 
     process: async (blob) => {
-        const groq = localStorage.getItem('beans_token_groq');
-        const gemini = localStorage.getItem('beans_token_gemini');
-        
-        if (!groq || !gemini) {
-            VoiceService.addLogNotification("Setup Fault", "API tokens are missing from local engine context parameters.", true);
+        // Direct extraction from source variables to fix timing/401 errors
+        if (typeof BEANS_STATIC_GROQ === 'undefined' || typeof BEANS_STATIC_GEMINI === 'undefined' || 
+            BEANS_STATIC_GROQ.includes("YOUR_BASE64") || BEANS_STATIC_GEMINI.includes("YOUR_BASE64")) {
+            VoiceService.addLogNotification("Configuration Error", "Paste your base64 keys into menu-data.js first.", true);
             return;
         }
 
+        const groqDecoded = atob(BEANS_STATIC_GROQ).trim();
+        const geminiDecoded = atob(BEANS_STATIC_GEMINI).trim();
+
         try {
-            VoiceService.addLogNotification("Step 1/3", "Uploading sound payload to Groq Cloud Api...");
+            VoiceService.addLogNotification("Step 1/3", "Uploading sound tracking layer to Groq...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
             
             const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${groq}` },
+                headers: { 'Authorization': `Bearer ${groqDecoded}` },
                 body: fd
             });
             
-            if (!res.ok) throw new Error(`Groq Gateway Failure: HTTP Status Code ${res.status}`);
+            if (!res.ok) throw new Error(`Groq Fault: Received HTTP ${res.status}`);
             const data = await res.json();
             const transcript = data.text;
             
             if (!transcript || transcript.trim() === "") {
-                VoiceService.addLogNotification("Groq Alert", "No speech detected in audio playback.", true);
+                VoiceService.addLogNotification("Groq Alert", "No speech caught. Re-record phrase.", true);
                 return;
             }
 
-            VoiceService.addLogNotification("Step 2/3", `Groq Transcribed Text: "${transcript}"`);
+            VoiceService.addLogNotification("Step 2/3", `Transcribed: "${transcript}"`);
 
-            // Reinforced System Instruction clamping framework to eliminate multi-language drift bugs
-            const systemPrompt = `SYSTEM PROTOCOL DESIGNATION: You are an internal processing node for an single-page digital culinary menu. The text provided is a voice transcription containing mixed spoken Malayalam or casual Manglish (Malayalam vocabulary written with English words/characters). You must strictly ignore Chinese, Telugu, Hindi, or Tamil classification rules. If the user states an order request matching a menu item profile, extract the item details. Return ONLY a single raw flat JSON object with no markdown styling backticks (do not wrap with \`\`\`json). Do not include conversational text or responses.
-            Structure Schema format: {"matched": true, "itemName": "Exact Item Title String Here", "price": "100", "speechResponse": "Confirmation feedback statement written in pure Malayalam script"}`;
+            const systemPrompt = `SYSTEM REGISTRY PROTOCOL: You map spoken phrasing to a menu system. The input is strictly Malayalam or Manglish text. Ignore other languages entirely. Input phrase: "${transcript}". Find a matched item on our menu directory. Return ONLY a single raw flat JSON object with no markdown syntax block tags (no \`\`\`json). Structure format: {"matched": true, "itemName": "Exact Item Title String Here", "price": "100", "speechResponse": "Confirmation feedback statement written in pure Malayalam script"}`;
 
-            // Corrected, fully functional URL REST destination string targeting models namespace sequence
-            const geminiTargetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`;
+            const geminiTargetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiDecoded}`;
 
             const gemRes = await fetch(geminiTargetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\nUser Voice Transcript String: "${transcript}"` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
             });
             
-            if (!gemRes.ok) throw new Error(`Gemini Gateway Failure: HTTP Status Code ${gemRes.status}`);
+            if (!gemRes.ok) throw new Error(`Gemini Fault: Received HTTP ${gemRes.status}`);
             const gemData = await gemRes.json();
             
             if (!gemData.candidates || gemData.candidates.length === 0) {
-                throw new Error("Zero content generation paths returned from the model runtime node.");
+                throw new Error("Zero candidates returned from generative node.");
             }
             
             let cleanText = gemData.candidates[0].content.parts[0].text;
             cleanText = cleanText.replace(/```json|```/g, '').trim();
             const output = JSON.parse(cleanText);
 
-            VoiceService.addLogNotification("Step 3/3", `Gemini returned structured match: ${JSON.stringify(output)}`);
+            VoiceService.addLogNotification("Step 3/3", `Matched item profile successfully.`);
             
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
