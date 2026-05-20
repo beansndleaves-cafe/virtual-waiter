@@ -30,20 +30,19 @@ const VoiceService = {
                     await VoiceService.process(new Blob(VoiceService.chunks, { type: 'audio/webm' }));
                 };
                 
-                // Initialize Live Real-time Speech Preview
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (SpeechRecognition) {
                     VoiceService.liveRecognizer = new SpeechRecognition();
                     VoiceService.liveRecognizer.continuous = true;
                     VoiceService.liveRecognizer.interimResults = true;
-                    VoiceService.liveRecognizer.lang = 'ml-IN'; // Default to Malayalam listening
+                    VoiceService.liveRecognizer.lang = 'ml-IN'; 
                     
                     VoiceService.liveRecognizer.onresult = (event) => {
                         let interimTranscript = '';
                         for (let i = event.resultIndex; i < event.results.length; ++i) {
                             interimTranscript += event.results[i][0].transcript;
                         }
-                        VoiceService.updateStatus("Listening Live...", interimTranscript || "Siri-style capturing...");
+                        VoiceService.updateStatus("Listening Live...", interimTranscript || "Capturing text...");
                     };
                     VoiceService.liveRecognizer.start();
                 }
@@ -108,22 +107,30 @@ const VoiceService = {
 
             VoiceService.updateStatus("Step 2/3: Gemini AI", `Matching transcript: "${transcript}"`);
 
-            const systemPrompt = `Analyze this spoken Malayalam order: "${transcript}". Find matching menu items. Return a single strict JSON object only, no markdown formatting blocks, no extra words. Format exactly like this: {"matched": true, "itemName": "Item Title Here", "price": "100", "speechResponse": "Malayalam text confirmation"}`;
+            // Strict system prompt forcing interpretation purely as Malayalam or Manglish mixes
+            const systemPrompt = `CRITICAL: Interpret this input ONLY as Malayalam or Manglish (Malayalam written with English words/phrases). Ignore other Indian language classifications entirely. Input phrase: "${transcript}". Identify if it matches an item on the digital menu. Return a single strict JSON object only, no markdown markdown formatting wrappers, no extra commentary text. Structure exactly like this: {"matched": true, "itemName": "Item Title Here", "price": "100", "speechResponse": "Order confirm text written in Malayalam script"}`;
 
-            const gemRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`, {
+            // Corrected and updated endpoint string configuration to prevent 404 router failures
+            const geminiTargetUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${gemini}`;
+
+            const gemRes = await fetch(geminiTargetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
             });
             
-            if (!gemRes.ok) throw new Error(`Gemini HTTP Error ${gemRes.status}`);
+            if (!gemRes.ok) throw new Error(`Gemini Server Error Code: ${gemRes.status}`);
             const gemData = await gemRes.json();
-            let cleanText = gemData.candidates[0].content.parts[0].text;
             
+            if (!gemData.candidates || gemData.candidates.length === 0) {
+                throw new Error("Gemini returned zero response candidates.");
+            }
+            
+            let cleanText = gemData.candidates[0].content.parts[0].text;
             cleanText = cleanText.replace(/```json|```/g, '').trim();
             const output = JSON.parse(cleanText);
 
-            VoiceService.updateStatus("Step 3/3: Completed", "Spitting response structures...");
+            VoiceService.updateStatus("Step 3/3: Completed", "Triggering feedback actions...");
             
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
@@ -135,12 +142,10 @@ const VoiceService = {
                 window.openItemModalFallback(output.itemName, output.price);
             }
             
-            // Hide dashboard smoothly after success
             setTimeout(() => toast?.classList.add('hidden'), 1500);
         } catch (err) {
             console.error(err);
             VoiceService.updateStatus("Pipeline Failed", err.message);
-            // Leave the message open longer on screen so you can read the error text on your tablet
             setTimeout(() => toast?.classList.add('hidden'), 6000);
         }
     }
