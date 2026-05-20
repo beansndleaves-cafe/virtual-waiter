@@ -1,4 +1,4 @@
-// voice-service.js - Consolidated Groq Speech-to-Intent Module
+// voice-service.js - Direct-Decoded Serverless Voice Engine with Strict Menu Clamping
 const VoiceService = {
     active: false,
     recorder: null,
@@ -67,7 +67,7 @@ const VoiceService = {
                             text += event.results[i][0].transcript;
                         }
                         const previewNode = document.getElementById('voice-live-preview-box');
-                        if (previewNode) previewNode.innerText = text || "Capturing speech waveforms...";
+                        if (previewNode) previewNode.innerText = text || "Capturing speech...";
                     };
                     VoiceService.liveRecognizer.start();
                 }
@@ -78,7 +78,7 @@ const VoiceService = {
                 btn?.classList.add('bg-red-500/20', 'text-red-500', 'border-red-500/40');
                 overlay?.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "Speak now...";
-                VoiceService.addLogNotification("Mic Status", "Recording pipeline tracking active.");
+                VoiceService.addLogNotification("Mic Status", "Recording pipeline initialized.");
             } catch (e) { 
                 alert("Microphone connection failed: " + e.message); 
             }
@@ -89,7 +89,7 @@ const VoiceService = {
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") {
                 VoiceService.recorder.stop();
-                VoiceService.addLogNotification("Mic Status", "Audio segment processing.");
+                VoiceService.addLogNotification("Mic Status", "Audio segment closed.");
             }
         }
     },
@@ -103,11 +103,11 @@ const VoiceService = {
         const groqDecoded = atob(BEANS_STATIC_GROQ).trim();
 
         try {
-            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Uploading audio to Groq cloud runtime...");
+            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Uploading audio data payload to Groq...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
-            fd.append('language', 'ml'); // Hard clamp phonetic transcription straight to Malayalam rules
+            fd.append('language', 'ml'); 
             
             const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                 method: 'POST',
@@ -117,17 +117,41 @@ const VoiceService = {
             
             if (!res.ok) throw new Error(`Groq Whisper Failure: Received HTTP ${res.status}`);
             const data = await res.json();
-            const transcript = data.text;
+            let transcript = data.text;
             
             if (!transcript || transcript.trim() === "") {
-                VoiceService.addLogNotification("Groq Alert", "Audio stream contains empty voice track mappings.", true);
+                VoiceService.addLogNotification("Groq Alert", "Audio stream resolved to empty data blocks.", true);
                 return;
             }
 
-            VoiceService.addLogNotification("Step 2/2: LLaMA Intent", `Transcribed Text: "${transcript}"`);
+            // CRITICAL LINGUISTIC SANITIZER LAYER: Filters out non-Malayalam/non-English script characters (like Gurmukhi/Punjabi)
+            transcript = transcript.replace(/[^\u0D00-\u0D7F\u0020-\u007E]/g, '').trim();
+            if (transcript === "") {
+                VoiceService.addLogNotification("Sanitizer Alert", "Filtered ambiguous cross-language character sets.", true);
+                return;
+            }
 
-            // Highly strict, Malayalam/Manglish locked prompts filtering output directly into a minified object block mapping
-            const systemPrompt = `CRITICAL ASSIGNMENT: You map user order text to a food menu directory. Treat the spelling mapping exclusively under casual phonetic Malayalam or mixed Manglish syntax. Ignore all other languages completely. Input voice request string: "${transcript}". Identify if it matches an item on our menu directory. Return ONLY a single raw flat JSON object with no markdown text code block wrappers, fences, or styling indicators. Format precisely matching this structure schema: {"matched": true, "itemName": "Exact Item Title", "price": "100", "speechResponse": "Order confirmation statement written in clean Malayalam script"}`;
+            VoiceService.addLogNotification("Step 2/2: LLaMA Intent", `Sanitized Phrasing: "${transcript}"`);
+
+            // Compile a strict, minified text index of allowed menu entries directly from your array database
+            let allowedItemsReferenceList = [];
+            for (const [key, category] of Object.entries(menuData)) {
+                category.items.forEach(i => allowedItemsReferenceList.push(`- ${i.title} (Price: ₹${i.price})`));
+            }
+            const structuredReferenceText = allowedItemsReferenceList.join("\n");
+
+            // Reinforced System Instruction clamping prompt completely stopping model hallucinations
+            const systemPrompt = `SYSTEM OPERATIONAL DIRECTIVE: You are an intent matching agent for a serverless food system. You analyze spoken user audio text written in phonetic Malayalam or casual Manglish. 
+            
+            CRITICAL BOUNDARY RULE: You can ONLY match items that are explicitly found in this menu list. Do not hallucinate or create items (e.g. do not match fish fry, beef, or any dish not listed below):
+            ${structuredReferenceText}
+
+            CONVERSATIONAL LIST PROTOCOL: If the user query is asking to see the menu, recite options, or asking what is available (e.g., "menu enthokke und", "what do you have", "recite menu"), you must return: {"matched": false, "itemName": "", "price": "0", "speechResponse": "ഞങ്ങളുടെ മെനുവിൽ ബണ്ടിലുകൾ, ക്വിക്ക് ബൈറ്റ്സ്, സൂപ്പുകൾ, റൈസ്, നൂഡിൽസ്, ഷെയ്ക്കുകൾ, ഫ്രഷ് ജ്യൂസുകൾ എന്നിവ ലഭ്യമാണ്. മുഴുവൻ കാണാൻ മെനു ബട്ടൺ അമർത്തുക."}
+
+            For standard food item order intents, return a raw flat JSON object matching this schema layout structure exactly: 
+            {"matched": true, "itemName": "Exact Item Title from List", "price": "Item Price from List", "speechResponse": "Short order confirmation statement written in clean Malayalam script"}
+            
+            If the user text doesn't clearly match any listed item, return {"matched": false, "itemName": "", "price": "0", "speechResponse": "ക്ഷമിക്കണം, നിങ്ങൾ പറഞ്ഞ ഇനം ഞങ്ങളുടെ മെനുവിൽ കണ്ടെത്താനായില്ല."}`;
 
             const groqChatUrl = 'https://api.groq.com/openai/v1/chat/completions';
             const chatRes = await fetch(groqChatUrl, {
@@ -139,11 +163,11 @@ const VoiceService = {
                 body: JSON.stringify({
                     model: "llama-3.3-70b-versatile",
                     messages: [
-                        { role: "system", content: "You output single, valid, flat minified JSON data blocks. Never write text code fences, introductory comments, or markdown ticks." },
-                        { role: "user", content: systemPrompt }
+                        { role: "system", content: "You output single, valid, flat minified JSON data blocks matching requested properties exactly. Never write markdown symbols, code block ticks, or comments." },
+                        { role: "user", content: `User Voice Input Phrase: "${transcript}"\n\nInstructions:\n${systemPrompt}` }
                     ],
                     temperature: 0.1,
-                    response_format: { type: "json_object" } // Force structured JSON parsing outputs from the server engine
+                    response_format: { type: "json_object" } 
                 })
             });
 
@@ -152,7 +176,7 @@ const VoiceService = {
             const cleanText = chatData.choices[0].message.content.trim();
             
             const output = JSON.parse(cleanText);
-            VoiceService.addLogNotification("Pipeline Complete", `Matched item: ${output.itemName}`);
+            VoiceService.addLogNotification("Pipeline Complete", `Action result: ${JSON.stringify(output)}`);
             
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
@@ -160,7 +184,7 @@ const VoiceService = {
                 window.speechSynthesis.speak(u);
             }
             
-            if (output.matched && typeof window.openItemModalFallback === 'function') {
+            if (output.matched && output.itemName !== "" && typeof window.openItemModalFallback === 'function') {
                 window.openItemModalFallback(output.itemName, output.price);
             }
         } catch (err) {
