@@ -1,6 +1,6 @@
 // menu-data.js - Centralized Menu Registry, Fallback Assets, and Consolidated Token Engine
 
-// 1. PASTE YOUR SINGLE FRESH RAW GROQ KEY HERE (Starts with gsk_...)
+// 1. ഇവിടെ നിങ്ങളുടെ സ്വന്തം Groq API Key നൽകുക (Starts with gsk_...)
 const RAW_SYSTEM_GROQ_KEY = "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";
 
 // Automatically encode assets to secure baseline architectures safely
@@ -78,7 +78,7 @@ const menuData = {
         icon: `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.625a2.25 2.25 0 01-2.241 2.125H6.616a2.25 2.25 0 01-2.241-2.125L3.75 7.5m16.5 0H3.75m16.5 0A2.25 2.25 0 0018 5.25H6A2.25 2.25 0 003.75 7.5m13.5-3V3.375c0-.621-.504-1.125-1.125-1.125h-4.25c-.621 0-1.125.504-1.125 1.125V4.5M10.5 11.25h3M9.75 15h4.5"/></svg>`,
         items: [
             { title: "Watermelon Juice", subtitle: "100% Pure fresh, hydrating crushed crimson melon", price: "70", image: "img/watermelon.jpeg" },
-            { title: "Musk Melon Juice", subtitle: "Sweet, pulpy cantaloupe nectar chilled to perfection", price: "90", image: "img/muskmelon.jpeg" },
+            { title: "Musk Melon Juice", subtitle: "Sweet, pulpy candy nectar chilled to perfection", price: "90", image: "img/muskmelon.jpeg" },
             { title: "Seasonal Fruit Juice", subtitle: "Freshly squeezed local harvest dynamic fruit extract", price: "90", image: "img/seasonal_juice.jpeg" },
             { title: "Pineapple Juice", subtitle: "Tangy, sweet tropical golden pineapple press juice", price: "90", image: "img/pineapple.jpeg" },
             { title: "Fresh Lime Soda", subtitle: "Zesty, fizzy & highly effervescent citrus soda mixer", price: "50", image: "img/lime_soda.jpeg" },
