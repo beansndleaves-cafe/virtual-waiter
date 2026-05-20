@@ -1,4 +1,7 @@
-// menu-data.js - Centralized Menu Registry and Fallback Asset Engine
+// menu-data.js - Centralized Menu Registry, Fallback Assets, and Static Credentials
+const BEANS_STATIC_GROQ = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4="; 
+const BEANS_STATIC_GEMINI = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
+
 const menuData = {
     "bundles": {
         name: "Super Saver Bundles",
