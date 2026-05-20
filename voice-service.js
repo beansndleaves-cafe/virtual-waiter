@@ -6,10 +6,10 @@ const VoiceService = {
     liveRecognizer: null,
     systemLogsCollection: [],
     
-    // Persistent Session Context
+    // Persistent Session Context for Local Tablet Memory
     conversationState: {
         currentOrder: [], 
-        history: [], // മുൻപ് സംസാരിച്ച കാര്യങ്ങൾ ഓർത്തു വെക്കാൻ (Context Lock)
+        history: [], 
         totalBillAmount: 0,
         step: "ordering" 
     },
@@ -37,10 +37,10 @@ const VoiceService = {
         const btn = document.getElementById('mic-assistant-btn');
         const overlay = document.getElementById('voice-diagnostic-overlay');
         
-        // BARGE-IN FEATURE: കസ്റ്റമർ ബട്ടൺ അമർത്തിയാൽ എഐ ഉടനടി സംസാരം നിർത്തുന്നു
+        // BARGE-IN FEATURE: കസ്റ്റമർ ബട്ടൺ അമർത്തുന്ന ഉടൻ എഐ സംസാരം നിർത്തുന്നു
         if (window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
-            VoiceService.addLogNotification("Barge-In", "AI speaking interrupted by user microphone action.");
+            VoiceService.addLogNotification("Barge-In", "AI speaking interrupted immediately.");
         }
 
         if (!VoiceService.active) {
@@ -57,6 +57,7 @@ const VoiceService = {
                     VoiceService.liveRecognizer.continuous = true;
                     VoiceService.liveRecognizer.interimResults = true;
                     VoiceService.liveRecognizer.lang = 'ml-IN'; 
+                    
                     VoiceService.liveRecognizer.onresult = (event) => {
                         let text = '';
                         for (let i = event.resultIndex; i < event.results.length; ++i) { text += event.results[i][0].transcript; }
@@ -67,13 +68,13 @@ const VoiceService = {
                 }
                 VoiceService.recorder.start(250);
                 VoiceService.active = true;
-                btn?.className = 'p-3 rounded-xl bg-red-500/20 text-red-500 border border-red-500/40 shadow-lg transition-all duration-200 animate-pulse';
+                btn?.setAttribute('class', 'p-3 rounded-xl bg-red-500/20 text-red-500 border border-red-500/40 shadow-lg transition-all duration-200 animate-pulse');
                 overlay?.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "സംസാരിക്കൂ...";
             } catch (e) { alert("Microphone failed: " + e.message); }
         } else {
             VoiceService.active = false;
-            btn?.className = 'p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-yellow-500 hover:bg-yellow-500 hover:text-black shadow-lg transition-all duration-200';
+            btn?.setAttribute('class', 'p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-yellow-500 hover:bg-yellow-500 hover:text-black shadow-lg transition-all duration-200');
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") { VoiceService.recorder.stop(); }
         }
@@ -81,13 +82,13 @@ const VoiceService = {
 
     process: async (blob) => {
         if (typeof BEANS_STATIC_GROQ === 'undefined' || BEANS_STATIC_GROQ.includes("YOUR_BASE64")) {
-            VoiceService.addLogNotification("Error", "Paste your fresh raw Groq key into menu-data.js.", true);
+            VoiceService.addLogNotification("Error", "API keys are missing in menu-data.js.", true);
             return;
         }
         const groqDecoded = atob(BEANS_STATIC_GROQ).trim();
 
         try {
-            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Processing speech audio data via Groq...");
+            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Uploading audio data payload to Groq...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
@@ -101,7 +102,11 @@ const VoiceService = {
             if (!res.ok) throw new Error(`Groq Whisper HTTP Error: ${res.status}`);
             const data = await res.json();
             let transcript = data.text;
-            if (!transcript || transcript.trim() === "") return;
+            
+            if (!transcript || transcript.trim() === "" || transcript.trim() === "?") {
+                VoiceService.addLogNotification("Groq Alert", "Empty or unclear speech audio stream.", true);
+                return;
+            }
 
             transcript = transcript.replace(/[^\u0D00-\u0D7F\u0020-\u007Ea-zA-Z0-9\s?,.]/g, '').trim();
             VoiceService.addLogNotification("Step 2/2: LLaMA Brain", `Transcript Input: "${transcript}"`);
@@ -112,8 +117,8 @@ const VoiceService = {
             }
             const structuredReferenceText = allowedItemsReferenceList.join("\n");
 
-            // തനി നാടൻ മലയാളി ശൈലി ഉറപ്പുവരുത്താനുള്ള സിസ്റ്റം നിർദ്ദേശങ്ങൾ
-            const systemPrompt = `CORE WAITER IDENTITY PROTOCOL: You are a friendly, natural-speaking human waiter at 'Beans n Leaves' restaurant in Kerala. Your speaking style must be fully natural, warm, and highly fluent local restaurant spoken Malayalam dialect. Avoid textbook or formal words.
+            // തനി നാടൻ കേരളീയ റസ്റ്റോറന്റ് വെയിറ്റർ ഇന്റലിജൻസ് പ്രോംപ്റ്റ്
+            const systemPrompt = `CORE WAITER IDENTITY PROTOCOL: You are a friendly, natural-speaking human waiter at 'Beans n Leaves' restaurant in Kerala. Your speaking style must be fully natural, warm, and highly fluent local restaurant spoken Malayalam dialect. Avoid textbook, formal, or machine-like words.
             
             Current Active Order Array: ${JSON.stringify(VoiceService.conversationState.currentOrder)}
             Conversation Context Logs: ${JSON.stringify(VoiceService.conversationState.history.slice(-4))}
@@ -122,16 +127,16 @@ const VoiceService = {
             ${structuredReferenceText}
 
             DIALECT TRANSLATION GUIDE FOR SPEECH SYNTHESIS ACCURACY:
-            - Do not write formal words like "ആഹാരം", "ആഗ്രഹം", "ലഭ്യമാണ്", "സ്വീകരിച്ചു", "മാർഗ്ഗം".
+            - Never write formal words like "ആഹാരം", "ആഗ്രഹം", "ലഭ്യമാണ്", "സ്വീകരിച്ചു", "മാർഗ്ഗം".
             - Instead use natural conversational words like "കഴിക്കാനായിട്ട്", "വേണം", "എടുത്തുതരാം", "ബിൽ", "ക്യുആർ കോഡ്".
-            - Write clean Malayalam words. Avoid spelling tricks like combining syllables that break the browser speech engine. (e.g. use "വേണോ?" instead of "വേണംവോ?").
+            - Output clean Malayalam spelling. Avoid letters like "വ്വോ" or "മ്വോ" that break speech synthesis engines. (Use "വേണോ?" instead of "വേണംവോ?").
 
-            ORDER MANAGEMENT AND UP-SELLING STRATEGY:
-            1. General queries (e.g., "ഷെയ്ക്ക് വേണം"): Reply naturally in Malayalam: "ഞങ്ങളുടെ അടുത്ത് Oreo, Nutella, Sharjah ഷെയ്ക്കുകൾ ഉണ്ട്. ഇതിൽ ഏതാ ഇപ്പൊ എടുത്തു തേണ്ടത്?".
-            2. Cross-selling: If they order an item, suggest an addition to create a larger order. (e.g., if they order Burger, say: "തീർച്ചയായും, അതിന്റെ കൂടെ കഴിക്കാൻ നല്ല ക്രിസ്പി ഫ്രെഞ്ച് ഫ്രൈസോ അല്ലെങ്കിൽ കുടിക്കാൻ ഒരു കോൾഡ് കോഫിയോ കൂടി എടുക്കട്ടേ?").
-            3. Order Completion: When they want to finalize ("അത്രയും മതി", "ബിൽ എത്രയായി?"), calculate the final bill total. Recite the whole list back to confirm, state the exact amount, and ask if payment method is UPI or Cash. If UPI, say you will show the QR code and set "showQRCode" to true.
+            CONVERSATIONAL AND UP-SELLING STRATEGY:
+            1. Broad Category Queries (e.g., "ഷെയ്ക്ക് വേണം"): Reply naturally: "ഞങ്ങളുടെ അടുത്ത് Oreo, Nutella, Sharjah ഷെയ്ക്കുകൾ ഉണ്ട്. ഇതിൽ ഏതാ ഇപ്പൊ എടുത്തു തേണ്ടത്?". Never take a default choice without asking.
+            2. Smart Cross-selling Suggestions: Whenever they add a valid dish, suggest a great side match to increase the order. (e.g., if they order a Burger, say: "തീർച്ചയായും, അതിന്റെ കൂടെ കഴിക്കാൻ നല്ല ക്രിസ്പി ഫ്രെഞ്ച് ഫ്രൈസോ അല്ലെങ്കിൽ കുടിക്കാൻ ഒരു കോൾഡ് കോഫിയോ കൂടി എടുക്കട്ടേ?").
+            3. Order Finalization ("മതി", "ബിൽ എത്രയായി?"): Sum up all confirmed items. Recite the exact list back to them, state the total bill amount clearly in Malayalam, and ask if payment method is UPI or Cash. If UPI, explicitly say you are displaying the QR code on screen and set "showQRCode" to true.
 
-            Return ONLY a raw JSON object (No markdown styling, no text blocks):
+            Return ONLY a raw JSON object with keys 'speechResponse', 'updateOrderList', 'triggerModalItem', 'totalBillAmount', 'showQRCode':
             {
                 "speechResponse": "കസ്റ്റമറോട് തിരിച്ചു പറയേണ്ട മറുപടി തനി നാടൻ ഹോട്ടൽ ശൈലിയിൽ ഇവിടെ എഴുതുക",
                 "updateOrderList": [{"title": "Exact Item Title", "price": "100", "quantity": 1}],
@@ -147,8 +152,8 @@ const VoiceService = {
                 body: JSON.stringify({
                     model: "llama-3.3-70b-versatile",
                     messages: [
-                        { role: "system", content: "You output single, valid, flat JSON data objects matching required properties exactly." },
-                        { role: "user", content: `Customer Spoken Input: "${transcript}"\n\nInstructions:\n${systemPrompt}` }
+                        { role: "system", content: "You output single, valid, flat JSON data objects matching required properties exactly. Never write code fences." },
+                        { role: "user", content: `Customer Input: "${transcript}"\n\nInstructions:\n${systemPrompt}` }
                     ],
                     temperature: 0.1,
                     response_format: { type: "json_object" }
@@ -162,7 +167,7 @@ const VoiceService = {
 
             VoiceService.addLogNotification("Pipeline Complete", JSON.stringify(output));
             
-            // ഹിസ്റ്ററിയും സ്റ്റേറ്റും അപ്‌ഡേറ്റ് ചെയ്യുന്നു
+            // ഹിസ്റ്ററിയും ഓർഡർ സ്റ്റേറ്റും അപ്‌ഡേറ്റ് ചെയ്യുന്നു
             VoiceService.conversationState.history.push({ user: transcript, assistant: output.speechResponse });
             if (output.updateOrderList && output.updateOrderList.length > 0) {
                 VoiceService.conversationState.currentOrder = output.updateOrderList;
@@ -171,16 +176,20 @@ const VoiceService = {
                 VoiceService.conversationState.totalBillAmount = output.totalBillAmount;
             }
 
-            // സ്പീച്ച് ഔട്ട്പുട്ട്
+            // സ്പീച്ച് ഔട്ട്പുട്ട് ജനറേഷൻ
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
                 u.lang = 'ml-IN';
-                u.rate = 1.0; // സുഗമമായി വായിക്കാൻ പാകത്തിന് സ്പീഡ് ക്രമീകരിച്ചു
+                u.rate = 0.95; // സ്വാഭാവികമായ വേഗത ക്രമീകരിച്ചു
                 window.speechSynthesis.speak(u);
             }
             
             if (output.triggerModalItem && output.triggerModalItem !== "" && typeof window.openItemModalFallback === 'function') {
                 window.openItemModalFallback(output.triggerModalItem, output.totalBillAmount);
+            }
+
+            if (output.showQRCode) {
+                VoiceService.addLogNotification("Payment Node", "UPI Payment Request - Simulating Interface Barcode Screen.");
             }
         } catch (err) {
             console.error(err);
