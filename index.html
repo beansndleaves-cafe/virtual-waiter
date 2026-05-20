@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Beans n Leaves Digital Menu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="app.css">
+    <script src="menu-data.js" defer></script>
+    <script src="voice-service.js" defer></script>
+    <script src="ui-controller.js" defer></script>
+</head>
+<body class="text-white select-none">
+
+<div id="start-overlay" class="fixed inset-0 bg-black z-[100] flex flex-col items-center justify-center text-center px-6 cursor-pointer" onclick="startExperience()">
+    <div class="w-16 h-1 bg-yellow-500 mb-6 rounded-full"></div>
+    <h1 class="text-4xl font-black tracking-wider mb-4 uppercase">Beans n Leaves</h1>
+    <p class="text-xl text-white/70 font-medium mb-12">Digital Menu & Ordering</p>
+    <div class="animate-bounce bg-yellow-500 text-black px-8 py-4 rounded-full font-bold text-lg shadow-[0_0_20px_rgba(234,179,8,0.5)]">Tap anywhere to Start</div>
+</div>
+
+<div id="nav-header" class="fixed top-4 left-4 right-4 z-[60] flex justify-between items-center hidden">
+    <button onclick="toggleMenuView()" class="bg-yellow-500 text-black px-5 py-3 rounded-xl font-black tracking-wide text-xs shadow-lg flex items-center gap-2 transform active:scale-95 transition-all">
+        <svg id="toggle-icon-grid" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+        <svg id="toggle-icon-close" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+        <span id="toggle-btn-text">VIEW FULL MENU</span>
+    </button>
+    <div class="bg-black/80 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 text-[10px] tracking-[0.25em] font-black text-yellow-500 uppercase">Beans n Leaves</div>
+</div>
+
+<div id="slideshow-container" class="relative w-full h-screen bg-black overflow-hidden z-10"></div>
+
+<div id="full-menu-view" class="fixed inset-0 bg-[#0c0c0c] z-30 pt-24 pb-6 pl-20 pr-4 overflow-y-auto custom-scrollbar hidden opacity-0 transition-opacity duration-300">
+    <div class="fixed left-0 top-24 bottom-0 w-16 bg-[#111] border-r border-white/5 z-50 flex flex-col items-center justify-between py-4 overflow-y-auto scrollbar-none">
+        <div class="flex flex-col items-center gap-4 w-full" id="category-tabs"></div>
+        <div class="flex flex-col items-center gap-4 w-full mt-auto">
+            <button id="mic-assistant-btn" onclick="VoiceService.toggle()" title="Speak in Malayalam to Order" class="p-3 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-yellow-500 hover:bg-yellow-500 hover:text-black shadow-lg transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z"/></svg>
+            </button>
+            <button onclick="openAdminPanel()" class="p-3 rounded-xl border border-white/5 bg-white/5 text-white/40 hover:text-yellow-500 transition-all">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.43l-1.003.828c-.293.242-.438.613-.43.992l1.004.827a1.125 1.125 0 01-.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.43l1.004-.827c.292-.24.437-.613.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124l.214-1.28z"/></svg>
+            </button>
+        </div>
+    </div>
+    <div id="grid-items-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 pb-16 w-full"></div>
+</div>
+
+<div id="item-modal" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[70] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300" onclick="closeItemModal()">
+    <div class="bg-[#141414] border border-white/10 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl" onclick="event.stopPropagation()">
+        <div class="relative h-60 bg-neutral-900"><img id="modal-img" class="w-full h-full object-cover"></div>
+        <div class="p-6">
+            <div id="modal-badge" class="text-yellow-500 text-[10px] tracking-widest font-black uppercase mb-1.5"></div>
+            <h3 id="modal-title" class="text-2xl font-black uppercase tracking-tight text-white mb-2"></h3>
+            <p id="modal-subtitle" class="text-white/60 text-sm mb-8 font-medium"></p>
+            <div class="flex items-center justify-between border-t border-white/5 pt-4">
+                <div><span class="text-[10px] text-white/40 block uppercase">Price</span><span class="text-3xl font-black text-white">₹<span id="modal-price"></span></span></div>
+                <button id="modal-order-btn" class="bg-yellow-500 text-black px-6 py-3.5 rounded-xl font-black uppercase text-xs tracking-wider">Order via WhatsApp</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="voice-status-toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[80] bg-neutral-900/95 border border-yellow-500/30 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-2xl hidden max-w-sm w-[90%]">
+    <div class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></div>
+    <div class="flex flex-col"><span class="text-xs font-black text-yellow-500 uppercase">Listening to Speech...</span><span class="text-[11px] text-white/50">എന്താണ് വേണ്ടതെന്ന് പറയൂ (Say what you need)</span></div>
+</div>
+
+<div id="admin-modal" class="fixed inset-0 bg-black/95 z-[80] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-200" onclick="closeAdminPanel()">
+    <div class="bg-[#161616] border border-white/10 w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar" onclick="event.stopPropagation()">
+        <h4 class="text-xl font-black uppercase text-yellow-500 mb-2">Menu Media Studio</h4>
+        <div class="space-y-4">
+            <select id="admin-item-selector" class="w-full bg-neutral-900 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none"></select>
+            <div class="grid grid-cols-2 gap-2 bg-neutral-900 p-1 rounded-xl"><button onclick="switchUploadMode('file')" class="py-2 text-xs font-bold uppercase rounded-lg bg-yellow-500 text-black">Upload File</button><button onclick="switchUploadMode('url')" class="py-2 text-xs font-bold uppercase rounded-lg text-white/60">Link</button></div>
+            <div id="wrapper-input-file" class="border-2 border-dashed border-white/10 rounded-xl p-6 text-center relative"><input type="file" onchange="processIncomingFile(event)" class="absolute inset-0 opacity-0 cursor-pointer"><span class="text-xs text-white/50">Tap to upload asset image</span></div>
+            <div id="wrapper-input-url" class="hidden space-y-2"><input type="text" id="admin-url-input" placeholder="Paste graphic link URL..." class="w-full bg-neutral-900 border border-white/10 rounded-xl p-3 text-sm text-white"></div>
+            <div id="studio-preview-box" class="hidden space-y-4"><canvas id="studio-processing-canvas" class="max-w-full h-auto max-h-64 object-contain rounded mx-auto"></canvas><input type="range" id="param-contrast" min="100" max="150" value="120" oninput="applyFilters()" class="w-full accent-yellow-500"></div>
+            <button onclick="commitStudioAsset()" id="btn-studio-save" disabled class="w-full bg-yellow-500 disabled:bg-neutral-800 text-black py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg">Save Asset</button>
+        </div>
+    </div>
+</div>
+
+<div class="fixed bottom-0 left-0 w-full h-1.5 bg-white/5 z-50"><div id="progress-bar" class="h-full bg-yellow-500 shadow-[0_0_15px_#eab308]"></div></div>
+
+</body>
+</html>
