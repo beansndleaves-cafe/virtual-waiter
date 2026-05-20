@@ -62,7 +62,7 @@
 
 <div id="voice-status-toast" class="fixed top-24 left-1/2 -translate-x-1/2 z-[80] bg-neutral-900/95 border border-yellow-500/30 px-6 py-4 rounded-2xl flex items-center gap-4 shadow-2xl hidden max-w-sm w-[90%]">
     <div class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></div>
-    <div class="flex flex-col"><span class="text-xs font-black text-yellow-500 uppercase">Listening to Speech...</span><span class="text-[11px] text-white/50">എന്താണ് വേണ്ടതെന്ന് പറയൂ (Say what you need)</span></div>
+    <div class="flex flex-col flex-grow min-w-0"><span id="voice-toast-title" class="text-xs font-black text-yellow-500 uppercase tracking-wider">Listening to Speech...</span><span id="voice-toast-sub" class="text-[11px] text-white/50 font-medium mt-0.5 break-words">എന്താണ് വേണ്ടതെന്ന് പറയൂ (Say what you need)</span></div>
 </div>
 
 <div id="admin-modal" class="fixed inset-0 bg-black/95 z-[80] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-200" onclick="closeAdminPanel()">
