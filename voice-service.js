@@ -1,4 +1,4 @@
-// voice-service.js - Serverless Voice AI Engine with Multi-Layer Log Stack
+// voice-service.js - Serverless Voice AI Engine with Rigid Linguistic Boundaries
 const VoiceService = {
     active: false,
     recorder: null,
@@ -56,7 +56,7 @@ const VoiceService = {
                             text += event.results[i][0].transcript;
                         }
                         const previewNode = document.getElementById('voice-live-preview-box');
-                        if (previewNode) previewNode.innerText = text || "ക്യാപ്ചർ ചെയ്യുന്നു (Listening)...";
+                        if (previewNode) previewNode.innerText = text || "Capturing voice...";
                     };
                     VoiceService.liveRecognizer.start();
                 }
@@ -67,9 +67,9 @@ const VoiceService = {
                 btn?.classList.add('bg-red-500/20', 'text-red-500', 'border-red-500/40');
                 overlay?.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "Speak now...";
-                VoiceService.addLogNotification("Mic Status", "Hardware recording layer open.");
+                VoiceService.addLogNotification("Mic Status", "Hardware recording tracking active.");
             } catch (e) { 
-                alert("Microphone capture permission error: " + e.message); 
+                alert("Microphone connection failed: " + e.message); 
             }
         } else {
             VoiceService.active = false;
@@ -78,7 +78,7 @@ const VoiceService = {
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") {
                 VoiceService.recorder.stop();
-                VoiceService.addLogNotification("Mic Status", "Recording closed. Packing blob payload...");
+                VoiceService.addLogNotification("Mic Status", "Audio track packaged.");
             }
         }
     },
@@ -88,12 +88,12 @@ const VoiceService = {
         const gemini = localStorage.getItem('beans_token_gemini');
         
         if (!groq || !gemini) {
-            VoiceService.addLogNotification("Error", "Missing API tokens in configuration layers.", true);
+            VoiceService.addLogNotification("Error", "API keys are missing from the configuration memory runtime.", true);
             return;
         }
 
         try {
-            VoiceService.addLogNotification("Step 1/3", "Uploading audio stream to Groq Whisper...");
+            VoiceService.addLogNotification("Step 1/3", "Processing speech audio via Groq Whisper...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
@@ -104,36 +104,41 @@ const VoiceService = {
                 body: fd
             });
             
-            if (!res.ok) throw new Error(`Groq STT Failed: HTTP ${res.status}`);
+            if (!res.ok) throw new Error(`Groq Fault: Status ${res.status}`);
             const data = await res.json();
             const transcript = data.text;
             
             if (!transcript || transcript.trim() === "") {
-                VoiceService.addLogNotification("Groq Complete", "No readable text transcribed.", true);
+                VoiceService.addLogNotification("Groq Alert", "No clear speech signals captured.", true);
                 return;
             }
 
-            VoiceService.addLogNotification("Step 2/3", `Groq Transcribed Text: "${transcript}"`);
+            VoiceService.addLogNotification("Step 2/3", `Transcribed: "${transcript}"`);
 
-            const systemPrompt = `CRITICAL LANGUAGE ASSIGNMENT: Interpret this spoken phrasing ONLY as Malayalam script or Manglish phrasing (mix of Malayalam and English words). Treat any phonetic sequence exclusively under Malayalam semantics. Target Input Phrase: "${transcript}". Find a matched item on our menu directory. Return ONLY a single flat JSON object with no markdown fences, no formatting decorators, no commentary text. Format exactly: {"matched": true, "itemName": "Item Title Here", "price": "100", "speechResponse": "Malayalam script confirmation feedback message"}`;
+            // Reinforced Language Clamp parameters strictly chaining logic to Malayalam/Manglish semantic paths
+            const systemPrompt = `SYSTEM OPERATIONAL PROTOCOL: You are the backend matching processor for a Malayalam food ordering engine. The incoming phrasing is strictly spoken Malayalam or Manglish dialect. Do not interpret it as Chinese, Telugu, Hindi, or any other language. If the phrase sounds like an item on our menu, extract it. Return ONLY a single raw flat JSON object. Do not include markdown code block syntax formatting wrappers (like \`\`\`json). Do not return extra conversation. Structure: {"matched": true, "itemName": "Item Title", "price": "100", "speechResponse": "Malayalam confirmation text in Malayalam script"}`;
 
-            // Fixed Endpoint URL Syntax Rule - Appends /models/ before model name
+            // Valid, active v1beta REST endpoint format configuration to fully drop 404 routing faults
             const geminiTargetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`;
 
             const gemRes = await fetch(geminiTargetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\nUser Transcribed Audio Text: "${transcript}"` }] }] })
             });
             
-            if (!gemRes.ok) throw new Error(`Gemini Endpoint Fault: HTTP ${gemRes.status}`);
+            if (!gemRes.ok) throw new Error(`Gemini Server Error Code: ${gemRes.status}`);
             const gemData = await gemRes.json();
+            
+            if (!gemData.candidates || gemData.candidates.length === 0) {
+                throw new Error("Zero response variants returned by model container.");
+            }
             
             let cleanText = gemData.candidates[0].content.parts[0].text;
             cleanText = cleanText.replace(/```json|```/g, '').trim();
             const output = JSON.parse(cleanText);
 
-            VoiceService.addLogNotification("Step 3/3", `Gemini matched item profile successfully.`);
+            VoiceService.addLogNotification("Step 3/3", `Gemini response parsed cleanly.`);
             
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
@@ -146,7 +151,7 @@ const VoiceService = {
             }
         } catch (err) {
             console.error(err);
-            VoiceService.addLogNotification("Pipeline Error", err.message, true);
+            VoiceService.addLogNotification("Pipeline Failure", err.message, true);
         }
     }
 };
