@@ -1,9 +1,12 @@
-// menu-data.js - Centralized Menu Registry, Fallback Assets, and Static Credentials
-const BEANS_STATIC_GROQ = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4="; 
-const BEANS_STATIC_GEMINI = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
+// menu-data.js - Centralized Menu Registry, Fallback Assets, and Consolidated Token Engine
 
-// Automatically clear out old tablet data to fix the 401 issue
-(function cleanCorruptTabletMemory() {
+// 1. PASTE YOUR SINGLE FRESH RAW GROQ KEY HERE (Starts with gsk_...)
+const RAW_SYSTEM_GROQ_KEY = "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";
+
+// Automatically encode assets to secure baseline architectures safely
+const BEANS_STATIC_GROQ = btoa(RAW_SYSTEM_GROQ_KEY.trim());
+
+(function enforceTabletCacheCleanse() {
     localStorage.removeItem('beans_token_groq');
     localStorage.removeItem('beans_token_gemini');
 })();
