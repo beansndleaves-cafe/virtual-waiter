@@ -4,15 +4,14 @@ const slideshowItems = [];
 
 // Automatic Initialization Layer: Decodes Obfuscated Keys globally if local storage is unconfigured
 (function initializeGlobalDefaultCredentials() {
-    // Paste your Base64 encoded strings here
     const defaultGroq = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4=";
     const defaultGemini = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
 
     if (!localStorage.getItem('beans_token_groq') && defaultGroq !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY") {
-        localStorage.setItem('beans_token_groq', atob(defaultGroq));
+        localStorage.setItem('beans_token_groq', defaultGroq);
     }
     if (!localStorage.getItem('beans_token_gemini') && defaultGemini !== "YOUR_BASE64_OBFUSCATED_GEMINI_KEY") {
-        localStorage.setItem('beans_token_gemini', atob(defaultGemini));
+        localStorage.setItem('beans_token_gemini', defaultGemini);
     }
 })();
 
@@ -89,7 +88,6 @@ function openItemModal(t, s, p, img, cat) {
     setTimeout(() => document.getElementById('item-modal').classList.remove('opacity-0'), 10);
 }
 
-// Global cross-file bridge safely routing voice triggers to active components
 window.openItemModalFallback = function(itemName, fallbackPrice) {
     let foundItem = null, foundCat = "";
     const lowerName = itemName.toLowerCase().trim();
