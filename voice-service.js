@@ -1,4 +1,4 @@
-// voice-service.js - Direct-Decoded Serverless Voice Engine
+// voice-service.js - Consolidated Groq Speech-to-Intent Module
 const VoiceService = {
     active: false,
     recorder: null,
@@ -67,7 +67,7 @@ const VoiceService = {
                             text += event.results[i][0].transcript;
                         }
                         const previewNode = document.getElementById('voice-live-preview-box');
-                        if (previewNode) previewNode.innerText = text || "Capturing speech...";
+                        if (previewNode) previewNode.innerText = text || "Capturing speech waveforms...";
                     };
                     VoiceService.liveRecognizer.start();
                 }
@@ -78,7 +78,7 @@ const VoiceService = {
                 btn?.classList.add('bg-red-500/20', 'text-red-500', 'border-red-500/40');
                 overlay?.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "Speak now...";
-                VoiceService.addLogNotification("Mic Status", "Recording pipeline initialized.");
+                VoiceService.addLogNotification("Mic Status", "Recording pipeline tracking active.");
             } catch (e) { 
                 alert("Microphone connection failed: " + e.message); 
             }
@@ -89,27 +89,25 @@ const VoiceService = {
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") {
                 VoiceService.recorder.stop();
-                VoiceService.addLogNotification("Mic Status", "Audio segment closed.");
+                VoiceService.addLogNotification("Mic Status", "Audio segment processing.");
             }
         }
     },
 
     process: async (blob) => {
-        // Direct extraction from source variables to fix timing/401 errors
-        if (typeof BEANS_STATIC_GROQ === 'undefined' || typeof BEANS_STATIC_GEMINI === 'undefined' || 
-            BEANS_STATIC_GROQ.includes("YOUR_BASE64") || BEANS_STATIC_GEMINI.includes("YOUR_BASE64")) {
-            VoiceService.addLogNotification("Configuration Error", "Paste your base64 keys into menu-data.js first.", true);
+        if (typeof BEANS_STATIC_GROQ === 'undefined' || BEANS_STATIC_GROQ.includes("YOUR_BASE64")) {
+            VoiceService.addLogNotification("Configuration Error", "Paste your fresh raw Groq key into menu-data.js.", true);
             return;
         }
 
         const groqDecoded = atob(BEANS_STATIC_GROQ).trim();
-        const geminiDecoded = atob(BEANS_STATIC_GEMINI).trim();
 
         try {
-            VoiceService.addLogNotification("Step 1/3", "Uploading sound tracking layer to Groq...");
+            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Uploading audio to Groq cloud runtime...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
+            fd.append('language', 'ml'); // Hard clamp phonetic transcription straight to Malayalam rules
             
             const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
                 method: 'POST',
@@ -117,39 +115,44 @@ const VoiceService = {
                 body: fd
             });
             
-            if (!res.ok) throw new Error(`Groq Fault: Received HTTP ${res.status}`);
+            if (!res.ok) throw new Error(`Groq Whisper Failure: Received HTTP ${res.status}`);
             const data = await res.json();
             const transcript = data.text;
             
             if (!transcript || transcript.trim() === "") {
-                VoiceService.addLogNotification("Groq Alert", "No speech caught. Re-record phrase.", true);
+                VoiceService.addLogNotification("Groq Alert", "Audio stream contains empty voice track mappings.", true);
                 return;
             }
 
-            VoiceService.addLogNotification("Step 2/3", `Transcribed: "${transcript}"`);
+            VoiceService.addLogNotification("Step 2/2: LLaMA Intent", `Transcribed Text: "${transcript}"`);
 
-            const systemPrompt = `SYSTEM REGISTRY PROTOCOL: You map spoken phrasing to a menu system. The input is strictly Malayalam or Manglish text. Ignore other languages entirely. Input phrase: "${transcript}". Find a matched item on our menu directory. Return ONLY a single raw flat JSON object with no markdown syntax block tags (no \`\`\`json). Structure format: {"matched": true, "itemName": "Exact Item Title String Here", "price": "100", "speechResponse": "Confirmation feedback statement written in pure Malayalam script"}`;
+            // Highly strict, Malayalam/Manglish locked prompts filtering output directly into a minified object block mapping
+            const systemPrompt = `CRITICAL ASSIGNMENT: You map user order text to a food menu directory. Treat the spelling mapping exclusively under casual phonetic Malayalam or mixed Manglish syntax. Ignore all other languages completely. Input voice request string: "${transcript}". Identify if it matches an item on our menu directory. Return ONLY a single raw flat JSON object with no markdown text code block wrappers, fences, or styling indicators. Format precisely matching this structure schema: {"matched": true, "itemName": "Exact Item Title", "price": "100", "speechResponse": "Order confirmation statement written in clean Malayalam script"}`;
 
-            const geminiTargetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiDecoded}`;
-
-            const gemRes = await fetch(geminiTargetUrl, {
+            const groqChatUrl = 'https://api.groq.com/openai/v1/chat/completions';
+            const chatRes = await fetch(groqChatUrl, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt }] }] })
+                headers: {
+                    'Authorization': `Bearer ${groqDecoded}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: "llama-3.3-70b-versatile",
+                    messages: [
+                        { role: "system", content: "You output single, valid, flat minified JSON data blocks. Never write text code fences, introductory comments, or markdown ticks." },
+                        { role: "user", content: systemPrompt }
+                    ],
+                    temperature: 0.1,
+                    response_format: { type: "json_object" } // Force structured JSON parsing outputs from the server engine
+                })
             });
-            
-            if (!gemRes.ok) throw new Error(`Gemini Fault: Received HTTP ${gemRes.status}`);
-            const gemData = await gemRes.json();
-            
-            if (!gemData.candidates || gemData.candidates.length === 0) {
-                throw new Error("Zero candidates returned from generative node.");
-            }
-            
-            let cleanText = gemData.candidates[0].content.parts[0].text;
-            cleanText = cleanText.replace(/```json|```/g, '').trim();
-            const output = JSON.parse(cleanText);
 
-            VoiceService.addLogNotification("Step 3/3", `Matched item profile successfully.`);
+            if (!chatRes.ok) throw new Error(`Groq LLaMA Engine Error: Received HTTP ${chatRes.status}`);
+            const chatData = await chatRes.json();
+            const cleanText = chatData.choices[0].message.content.trim();
+            
+            const output = JSON.parse(cleanText);
+            VoiceService.addLogNotification("Pipeline Complete", `Matched item: ${output.itemName}`);
             
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
