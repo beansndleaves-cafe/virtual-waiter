@@ -1,11 +1,15 @@
-// voice-service.js - Serverless Voice AI Engine with Rigid Linguistic Boundaries
+// voice-service.js - Serverless Voice AI Engine with Multi-Layer Log Stack & Copy Utilities
 const VoiceService = {
     active: false,
     recorder: null,
     chunks: [],
     liveRecognizer: null,
+    systemLogsCollection: [],
     
     addLogNotification: (title, text, isError = false) => {
+        const timestamp = new Date().toLocaleTimeString();
+        VoiceService.systemLogsCollection.push(`[${timestamp}] ${title.toUpperCase()}: ${text}`);
+        
         const stackContainer = document.getElementById('voice-log-stack');
         if (!stackContainer) return;
         
@@ -17,12 +21,19 @@ const VoiceService = {
         card.innerHTML = `
             <div class="flex justify-between items-center mb-1">
                 <span class="font-black uppercase tracking-wider text-[10px] ${isError ? 'text-red-400' : 'text-yellow-500'}">${title}</span>
-                <button onclick="this.parentElement.parentElement.remove()" class="text-white/40 hover:text-white px-1 text-base">&times;</button>
+                <span class="text-[9px] text-white/30 font-bold">${timestamp}</span>
             </div>
             <p class="leading-relaxed break-words">${text}</p>
         `;
         stackContainer.appendChild(card);
         stackContainer.scrollTop = stackContainer.scrollHeight;
+    },
+
+    copyDiagnosticsToClipboard: () => {
+        const textToCopy = VoiceService.systemLogsCollection.join("\n");
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => alert("Logs copied to tablet clipboard! Paste them to Gemini."))
+            .catch(() => alert("Clipboard block. Select the text inside log cards manually."));
     },
     
     toggle: async () => {
@@ -56,7 +67,7 @@ const VoiceService = {
                             text += event.results[i][0].transcript;
                         }
                         const previewNode = document.getElementById('voice-live-preview-box');
-                        if (previewNode) previewNode.innerText = text || "Capturing voice...";
+                        if (previewNode) previewNode.innerText = text || "Capturing speech waveforms...";
                     };
                     VoiceService.liveRecognizer.start();
                 }
@@ -67,9 +78,9 @@ const VoiceService = {
                 btn?.classList.add('bg-red-500/20', 'text-red-500', 'border-red-500/40');
                 overlay?.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "Speak now...";
-                VoiceService.addLogNotification("Mic Status", "Hardware recording tracking active.");
+                VoiceService.addLogNotification("Mic Status", "Hardware recording tracking connection active.");
             } catch (e) { 
-                alert("Microphone connection failed: " + e.message); 
+                alert("Microphone capture access hardware fault: " + e.message); 
             }
         } else {
             VoiceService.active = false;
@@ -78,7 +89,7 @@ const VoiceService = {
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") {
                 VoiceService.recorder.stop();
-                VoiceService.addLogNotification("Mic Status", "Audio track packaged.");
+                VoiceService.addLogNotification("Mic Status", "Audio capture track successfully packaged.");
             }
         }
     },
@@ -88,12 +99,12 @@ const VoiceService = {
         const gemini = localStorage.getItem('beans_token_gemini');
         
         if (!groq || !gemini) {
-            VoiceService.addLogNotification("Error", "API keys are missing from the configuration memory runtime.", true);
+            VoiceService.addLogNotification("Setup Fault", "API tokens are missing from local engine context parameters.", true);
             return;
         }
 
         try {
-            VoiceService.addLogNotification("Step 1/3", "Processing speech audio via Groq Whisper...");
+            VoiceService.addLogNotification("Step 1/3", "Uploading sound payload to Groq Cloud Api...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
@@ -104,41 +115,42 @@ const VoiceService = {
                 body: fd
             });
             
-            if (!res.ok) throw new Error(`Groq Fault: Status ${res.status}`);
+            if (!res.ok) throw new Error(`Groq Gateway Failure: HTTP Status Code ${res.status}`);
             const data = await res.json();
             const transcript = data.text;
             
             if (!transcript || transcript.trim() === "") {
-                VoiceService.addLogNotification("Groq Alert", "No clear speech signals captured.", true);
+                VoiceService.addLogNotification("Groq Alert", "No speech detected in audio playback.", true);
                 return;
             }
 
-            VoiceService.addLogNotification("Step 2/3", `Transcribed: "${transcript}"`);
+            VoiceService.addLogNotification("Step 2/3", `Groq Transcribed Text: "${transcript}"`);
 
-            // Reinforced Language Clamp parameters strictly chaining logic to Malayalam/Manglish semantic paths
-            const systemPrompt = `SYSTEM OPERATIONAL PROTOCOL: You are the backend matching processor for a Malayalam food ordering engine. The incoming phrasing is strictly spoken Malayalam or Manglish dialect. Do not interpret it as Chinese, Telugu, Hindi, or any other language. If the phrase sounds like an item on our menu, extract it. Return ONLY a single raw flat JSON object. Do not include markdown code block syntax formatting wrappers (like \`\`\`json). Do not return extra conversation. Structure: {"matched": true, "itemName": "Item Title", "price": "100", "speechResponse": "Malayalam confirmation text in Malayalam script"}`;
+            // Reinforced System Instruction clamping framework to eliminate multi-language drift bugs
+            const systemPrompt = `SYSTEM PROTOCOL DESIGNATION: You are an internal processing node for an single-page digital culinary menu. The text provided is a voice transcription containing mixed spoken Malayalam or casual Manglish (Malayalam vocabulary written with English words/characters). You must strictly ignore Chinese, Telugu, Hindi, or Tamil classification rules. If the user states an order request matching a menu item profile, extract the item details. Return ONLY a single raw flat JSON object with no markdown styling backticks (do not wrap with \`\`\`json). Do not include conversational text or responses.
+            Structure Schema format: {"matched": true, "itemName": "Exact Item Title String Here", "price": "100", "speechResponse": "Confirmation feedback statement written in pure Malayalam script"}`;
 
-            // Valid, active v1beta REST endpoint format configuration to fully drop 404 routing faults
+            // Corrected, fully functional URL REST destination string targeting models namespace sequence
             const geminiTargetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${gemini}`;
 
             const gemRes = await fetch(geminiTargetUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\nUser Transcribed Audio Text: "${transcript}"` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\nUser Voice Transcript String: "${transcript}"` }] }] })
             });
             
-            if (!gemRes.ok) throw new Error(`Gemini Server Error Code: ${gemRes.status}`);
+            if (!gemRes.ok) throw new Error(`Gemini Gateway Failure: HTTP Status Code ${gemRes.status}`);
             const gemData = await gemRes.json();
             
             if (!gemData.candidates || gemData.candidates.length === 0) {
-                throw new Error("Zero response variants returned by model container.");
+                throw new Error("Zero content generation paths returned from the model runtime node.");
             }
             
             let cleanText = gemData.candidates[0].content.parts[0].text;
             cleanText = cleanText.replace(/```json|```/g, '').trim();
             const output = JSON.parse(cleanText);
 
-            VoiceService.addLogNotification("Step 3/3", `Gemini response parsed cleanly.`);
+            VoiceService.addLogNotification("Step 3/3", `Gemini returned structured match: ${JSON.stringify(output)}`);
             
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
