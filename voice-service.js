@@ -1,4 +1,4 @@
-// voice-service.js - Consolidated Groq Speech-to-Intent Module (Barge-In & Native Fix)
+// voice-service.js - Consolidated Groq Speech-to-Intent Module (Perfect Synchronized Build)
 const VoiceService = {
     active: false,
     recorder: null,
@@ -6,7 +6,7 @@ const VoiceService = {
     liveRecognizer: null,
     systemLogsCollection: [],
     
-    // Persistent Multi-Turn Session Memory Node
+    // Persistent Multi-Turn Session Memory Node for Tablet Context
     conversationState: {
         currentOrder: [], 
         history: [], 
@@ -45,13 +45,14 @@ const VoiceService = {
     },
     
     toggle: async () => {
+        // EXACT FIXED NODE ID: index.html-ലെ 'mic-assistant-btn' മായി കൃത്യമായി കണക്ട് ചെയ്തു
         const btn = document.getElementById('mic-assistant-btn');
         const overlay = document.getElementById('voice-diagnostic-overlay');
         
-        // BARGE-IN TRIGGER: എഐ സംസാരിച്ചുകൊണ്ടിരിക്കുമ്പോൾ മൈക്ക് ഓൺ ചെയ്താൽ ഉടനടി സംസാരം നിർത്തുന്നു
+        // BARGE-IN TRIGGER: എഐ സംസാരിക്കുമ്പോൾ ബട്ടൺ അടിച്ചാൽ ഉടനടി നിർത്തിക്കും
         if (window.speechSynthesis && window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
-            VoiceService.addLogNotification("Barge-In", "AI Waiter conversation stream cancelled by user capture request.");
+            VoiceService.addLogNotification("Barge-In", "AI Waiter conversation stream cancelled by user.");
         }
 
         if (!VoiceService.active) {
@@ -89,17 +90,19 @@ const VoiceService = {
                 VoiceService.recorder.start(250);
                 VoiceService.active = true;
                 
-                // Fixed Button State Handler to completely prevent button freeze bugs
                 if(btn) {
                     btn.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
                     btn.style.color = "rgba(239, 68, 68, 1)";
                     btn.style.borderColor = "rgba(239, 68, 68, 0.4)";
+                    btn.classList.add('animate-pulse');
                 }
-                overlay?.classList.remove('hidden');
-                document.getElementById('voice-live-preview-box').innerText = "സംസാരിക്കൂ...";
-                VoiceService.addLogNotification("Mic Status", "Audio hardware recording pipeline tracking active.");
+                if (overlay) overlay.classList.remove('hidden');
+                
+                const previewBox = document.getElementById('voice-live-preview-box');
+                if (previewBox) previewBox.innerText = "സംസാരിക്കൂ...";
+                VoiceService.addLogNotification("Mic Status", "Recording pipeline tracking active.");
             } catch (e) { 
-                alert("Microphone integration failed: " + e.message); 
+                alert("Microphone connection failed: " + e.message); 
             }
         } else {
             VoiceService.active = false;
@@ -107,6 +110,7 @@ const VoiceService = {
                 btn.style.backgroundColor = "rgba(234, 179, 8, 0.05)";
                 btn.style.color = "rgba(234, 179, 8, 1)";
                 btn.style.borderColor = "rgba(234, 179, 8, 0.2)";
+                btn.classList.remove('animate-pulse');
             }
             
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
@@ -156,8 +160,7 @@ const VoiceService = {
             }
             const structuredReferenceText = allowedItemsReferenceList.join("\n");
 
-            // തനി നാടൻ കേരളീയ വെയിറ്റർ ശൈലിയിലേക്ക് റീ-ട്യൂൺ ചെയ്ത പുതിയ ഇൻസ്ട്രക്ഷൻ സെറ്റ്
-            const systemPrompt = `CORE IDENTITY PROTOCOL: You are a friendly, welcoming native human waiter named 'Beans n Leaves AI Waiter' at a high-end dark-themed cafe in Kerala. Speak ONLY in highly fluent, natural, and warm local restaurant spoken Malayalam dialect. Avoid formal, literal dictionary translations.
+            const systemPrompt = `CORE IDENTITY PROTOCOL: You are a friendly, welcoming native human waiter named 'Beans n Leaves AI Waiter' at a high-end dark-themed cafe in Kerala. Speak ONLY in highly fluent, natural, and warm local restaurant spoken Malayalam dialect. Avoid formal, literal textbook dictionary translations.
 
             Current Active Customer Orders: ${JSON.stringify(VoiceService.conversationState.currentOrder)}
             Conversation History Context: ${JSON.stringify(VoiceService.conversationState.history.slice(-4))}
@@ -166,12 +169,12 @@ const VoiceService = {
             ${structuredReferenceText}
 
             DIALECT ACCURACY RULES FOR WEB SPEECH SYNTHESIS:
-            - Never use textbook machine words like "ആഹാരം", "ആഗ്രഹം", "ലഭ്യമാണ്", "സ്വീകരിച്ചു", "മാർഗ്ഗം", "ലഭ്യമാക്കുക".
-            - Use natural human alternative words like "കഴിക്കാനായിട്ട്", "വേണം", "എടുത്തുതരാം", "ബിൽ തുക", "ക്യുആർ കോഡ്".
+            - Never use textbook machine words like "ആഹാരം", "ആഗ്രഹം", " can you hear me", "ലഭ്യമാണ്", "സ്വീകരിച്ചു", "മാർഗ്ഗം", "ലഭ്യമാക്കുക".
+            - Instead use natural conversational words like "കഴിക്കാനായിട്ട്", "വേണം", "എടുത്തുതരാം", "ബിൽ തുക", "ക്യുആർ കോഡ്".
             - Output spelling must be clean and standard so the device engine doesn't stutter (e.g. use "വേണോ?" instead of "വേണംവോ?", "ലഭ്യമാണ്" expressions must be replaced with "ഉണ്ട്").
 
             CONVERSATIONAL AND UP-SELLING STRATEGY:
-            1. Generalized Requests (e.g., "ഷെയ്ക്ക് വേണം"): Reply naturally: "ഞങ്ങളുടെ അടുത്ത് Oreo Shake, Nutella Shake, Sharjah Shake എന്നിവയുണ്ട്. ഇതിൽ ഏതാ ഇപ്പൊ എടുത്തു തേണ്ടത്?". Never pick automatically.
+            1. Generalized Requests (e.g., "ഷെയ്ക്ക് വേണം"): Reply naturally: "ഞങ്ങളുടെ അടുത്ത് Oreo Shake, Nutella Shake, Sharjah Shake എന്നിവയുണ്ട്. ഇതിൽ ഏതാ ഇപ്പൊ എടുത്തു തരേണ്ടത്?". Never pick automatically.
             2. Smart Upselling Multipliers: When they pick an item, recommend a matching drink or side. (e.g., if they order a Burger, say: "തീർച്ചയായും, അതിന്റെ കൂടെ കഴിക്കാൻ നല്ല ക്രിസ്പി ഫ്രെഞ്ച് ഫ്രൈസോ അല്ലെങ്കിൽ കുടിക്കാൻ ഒരു കോൾഡ് കോഫിയോ കൂടി എടുക്കട്ടേ?").
             3. Order Finalization ("മതി", "ബിൽ എത്രയായി?"): Recite all items in their current order back to them, state the final bill total amount clearly in Malayalam words/numbers, and ask if they prefer paying via UPI or Cash. If UPI, state that you are displaying the payment QR code and set "showQRCode" to true.
 
