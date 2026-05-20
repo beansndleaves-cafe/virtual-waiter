@@ -2,16 +2,13 @@
 let currentSlide = 0, slideInterval = null, isFullMenuView = false, currentActiveCategory = "all", uploadMode = 'file', globalActiveSourceImage = null;
 const slideshowItems = [];
 
-// Automatic Initialization Layer: Decodes Obfuscated Keys globally if local storage is unconfigured
-(function initializeGlobalDefaultCredentials() {
-    const defaultGroq = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4=";
-    const defaultGemini = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
-
-    if (!localStorage.getItem('beans_token_groq') && defaultGroq !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY") {
-        localStorage.setItem('beans_token_groq', defaultGroq);
+// Automated Safe Token Hydration Strategy
+(function hydrateDecodedCredentialsStore() {
+    if (typeof BEANS_STATIC_GROQ !== 'undefined' && BEANS_STATIC_GROQ && BEANS_STATIC_GROQ !== "PASTE_YOUR_BASE64_GROQ_KEY_HERE") {
+        localStorage.setItem('beans_token_groq', atob(BEANS_STATIC_GROQ));
     }
-    if (!localStorage.getItem('beans_token_gemini') && defaultGemini !== "YOUR_BASE64_OBFUSCATED_GEMINI_KEY") {
-        localStorage.setItem('beans_token_gemini', defaultGemini);
+    if (typeof BEANS_STATIC_GEMINI !== 'undefined' && BEANS_STATIC_GEMINI && BEANS_STATIC_GEMINI !== "PASTE_YOUR_BASE64_GEMINI_KEY_HERE") {
+        localStorage.setItem('beans_token_gemini', atob(BEANS_STATIC_GEMINI));
     }
 })();
 
