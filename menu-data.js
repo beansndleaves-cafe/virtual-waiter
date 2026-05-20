@@ -1,6 +1,6 @@
 // menu-data.js - Centralized Menu Registry, Fallback Assets, and Static Credentials
-const BEANS_STATIC_GROQ = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4="; 
-const BEANS_STATIC_GEMINI = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
+const BEANS_STATIC_GROQ = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF"; 
+const BEANS_STATIC_GEMINI = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4=";
 
 const menuData = {
     "bundles": {
