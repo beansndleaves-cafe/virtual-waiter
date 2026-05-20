@@ -1,0 +1,32 @@
+/* app.css - Ambient Kinetic Animations & Core Presentation Rules */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700;900&display=swap');
+
+body { font-family: 'Inter', sans-serif; background-color: #0b0b0b; margin: 0; overflow: hidden; touch-action: manipulation; }
+
+.ken-burns { animation: kenburns 8s ease-out forwards; }
+@keyframes kenburns { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
+@keyframes progress { 0% { width: 0%; } 100% { width: 100%; } }
+.progress-bar-fill { animation: progress 6s linear infinite; }
+
+.slide { display: none; opacity: 0; transition: opacity 0.8s ease-in-out; }
+.slide.active { display: block; opacity: 1; }
+
+.fade-out { animation: fadeOut 0.4s ease-in-out forwards; }
+@keyframes fadeOut { 0% { opacity: 1; visibility: visible; } 100% { opacity: 0; visibility: hidden; } }
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(234,179,8,0.3); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(234,179,8,0.6); }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+.menu-card { transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); transform-style: preserve-3d; perspective: 1000px; }
+.menu-card.clicked-action { transform: scale(0.94) rotateX(10deg) rotateY(-3deg); filter: brightness(0.8); }
+
+@keyframes successPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.06); background-color: #22c55e; color: white; box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+    100% { transform: scale(1); }
+}
+.order-btn-active { animation: successPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
