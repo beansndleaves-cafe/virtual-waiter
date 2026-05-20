@@ -2,6 +2,19 @@
 let currentSlide = 0, slideInterval = null, isFullMenuView = false, currentActiveCategory = "all", uploadMode = 'file', globalActiveSourceImage = null;
 const slideshowItems = [];
 
+// Automatic Initialization Layer: Decodes Obfuscated Keys globally if local storage is unconfigured
+(function initializeGlobalDefaultCredentials() {
+    const defaultGroq = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4=";
+    const defaultGemini = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
+
+    if (!localStorage.getItem('beans_token_groq') && defaultGroq !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY") {
+        localStorage.setItem('beans_token_groq', atob(defaultGroq));
+    }
+    if (!localStorage.getItem('beans_token_gemini') && defaultGemini !== "YOUR_BASE64_OBFUSCATED_GEMINI_KEY") {
+        localStorage.setItem('beans_token_gemini', atob(defaultGemini));
+    }
+})();
+
 function startExperience() {
     if (document.documentElement.requestFullscreen) { document.documentElement.requestFullscreen().catch(() => {}); }
     document.getElementById('start-overlay').classList.add('fade-out');
@@ -42,7 +55,7 @@ function renderGridItems() {
         if (currentActiveCategory !== 'all' && currentActiveCategory !== catKey) continue;
         cat.items.forEach(item => {
             const uid = `card-${idx++}`;
-            combined.push(`<div id="${uid}" onclick="handleCardAction('${uid}','${item.title}','${item.subtitle}','${item.price}','${item.image}','${cat.name}')" class="menu-card bg-[#131313] border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer"><div class="h-44 relative mb-4 bg-neutral-900 rounded-xl overflow-hidden"><img src="${item.image}" class="w-full h-full object-cover" onerror="this.src=resolveDynamicCulinaryAsset('${item.title}')"></div><div><span class="text-[9px] text-yellow-500 uppercase font-bold">${cat.name}</span><h4 class="text-base font-black text-white uppercase">${item.title}</h4><p class="text-xs text-white/50">${item.subtitle}</p></div><div class="mt-4 bg-white/5 text-center text-xs py-3 rounded-xl font-black text-yellow-500">₹${item.price} - ORDER</div></div>`);
+            combined.push(`<div id="${uid}" onclick="handleCardAction('${uid}','${item.title.replace(/'/g, "\\'")}','${item.subtitle.replace(/'/g, "\\'")}','${item.price}','${item.image}','${cat.name}')" class="menu-card bg-[#131313] border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer"><div class="h-44 relative mb-4 bg-neutral-900 rounded-xl overflow-hidden"><img src="${item.image}" class="w-full h-full object-cover" onerror="this.src=resolveDynamicCulinaryAsset('${item.title.replace(/'/g, "\\'")}');"></div><div><span class="text-[9px] text-yellow-500 uppercase font-bold">${cat.name}</span><h4 class="text-base font-black text-white uppercase">${item.title}</h4><p class="text-xs text-white/50">${item.subtitle}</p></div><div class="mt-4 bg-white/5 text-center text-xs py-3 rounded-xl font-black text-yellow-500">₹${item.price} - ORDER</div></div>`);
         });
     }
     document.getElementById('grid-items-container').innerHTML = combined.join('');
@@ -78,11 +91,11 @@ function closeItemModal() { document.getElementById('item-modal').classList.add(
 function renderSlideshow() {
     document.getElementById('slideshow-container').innerHTML = slideshowItems.map((s, i) => `
         <div class="slide absolute inset-0 ${i === 0 ? 'active' : ''}" id="slide-${i}">
-            <img src="${s.image}" class="w-full h-full object-cover ken-burns" onerror="this.src=resolveDynamicCulinaryAsset('${s.title}')">
+            <img src="${s.image}" class="w-full h-full object-cover ken-burns" onerror="this.src=resolveDynamicCulinaryAsset('${s.title.replace(/'/g, "\\'")}');">
             <div class="absolute inset-0 bg-gradient-to-t from-[#0b0b0b] via-black/40 to-transparent flex flex-col justify-end p-8">
                 <h2 class="text-4xl font-black text-white uppercase">${s.title}</h2>
                 <p class="text-white/80 text-sm mb-4 max-w-sm">${s.subtitle}</p>
-                <button onclick="openItemModal('${s.title}','${s.subtitle}','${s.price}','${s.image}')" class="bg-yellow-500 text-black font-black px-6 py-3 rounded-xl max-w-max">ORDER NOW FOR ₹${s.price}</button>
+                <button onclick="openItemModal('${s.title.replace(/'/g, "\\'")}','${s.subtitle.replace(/'/g, "\\'")}','${s.price}','${s.image}')" class="bg-yellow-500 text-black font-black px-6 py-3 rounded-xl max-w-max">ORDER NOW FOR ₹${s.price}</button>
             </div>
         </div>
     `).join('');
