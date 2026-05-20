@@ -2,12 +2,12 @@
 let currentSlide = 0, slideInterval = null, isFullMenuView = false, currentActiveCategory = "all", uploadMode = 'file', globalActiveSourceImage = null;
 const slideshowItems = [];
 
-// Automated Safe Token Hydration Strategy
-(function hydrateDecodedCredentialsStore() {
-    if (typeof BEANS_STATIC_GROQ !== 'undefined' && BEANS_STATIC_GROQ && BEANS_STATIC_GROQ !== "PASTE_YOUR_BASE64_GROQ_KEY_HERE") {
+// Automated Key Restoration Layer: Synchronizes static constants straight out of menu-data.js
+(function synchronizeActiveStaticCredentials() {
+    if (typeof BEANS_STATIC_GROQ !== 'undefined' && BEANS_STATIC_GROQ && BEANS_STATIC_GROQ !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY_HERE") {
         localStorage.setItem('beans_token_groq', atob(BEANS_STATIC_GROQ));
     }
-    if (typeof BEANS_STATIC_GEMINI !== 'undefined' && BEANS_STATIC_GEMINI && BEANS_STATIC_GEMINI !== "PASTE_YOUR_BASE64_GEMINI_KEY_HERE") {
+    if (typeof BEANS_STATIC_GEMINI !== 'undefined' && BEANS_STATIC_GEMINI && BEANS_STATIC_GEMINI !== "YOUR_BASE64_OBFUSCATED_GEMINI_KEY_HERE") {
         localStorage.setItem('beans_token_gemini', atob(BEANS_STATIC_GEMINI));
     }
 })();
