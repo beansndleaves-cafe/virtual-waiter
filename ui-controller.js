@@ -2,7 +2,7 @@
 let currentSlide = 0, slideInterval = null, isFullMenuView = false, currentActiveCategory = "all", uploadMode = 'file', globalActiveSourceImage = null;
 const slideshowItems = [];
 
-// Automated Key Restoration Layer: Synchronizes static constants straight out of menu-data.js
+// Automated Dynamic Credential Hydration Rule Set
 (function synchronizeActiveStaticCredentials() {
     if (typeof BEANS_STATIC_GROQ !== 'undefined' && BEANS_STATIC_GROQ && BEANS_STATIC_GROQ !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY_HERE") {
         localStorage.setItem('beans_token_groq', atob(BEANS_STATIC_GROQ));
