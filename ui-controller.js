@@ -2,13 +2,10 @@
 let currentSlide = 0, slideInterval = null, isFullMenuView = false, currentActiveCategory = "all", uploadMode = 'file', globalActiveSourceImage = null;
 const slideshowItems = [];
 
-// Automated Dynamic Credential Hydration Rule Set
+// Automated Key Restoration Layer: Restores configuration data values out of memory constants
 (function synchronizeActiveStaticCredentials() {
-    if (typeof BEANS_STATIC_GROQ !== 'undefined' && BEANS_STATIC_GROQ && BEANS_STATIC_GROQ !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY_HERE") {
+    if (typeof BEANS_STATIC_GROQ !== 'undefined' && BEANS_STATIC_GROQ && !BEANS_STATIC_GROQ.includes("YOUR_BASE64")) {
         localStorage.setItem('beans_token_groq', atob(BEANS_STATIC_GROQ));
-    }
-    if (typeof BEANS_STATIC_GEMINI !== 'undefined' && BEANS_STATIC_GEMINI && BEANS_STATIC_GEMINI !== "YOUR_BASE64_OBFUSCATED_GEMINI_KEY_HERE") {
-        localStorage.setItem('beans_token_gemini', atob(BEANS_STATIC_GEMINI));
     }
 })();
 
@@ -54,7 +51,7 @@ function renderGridItems() {
             const uid = `card-${idx++}`;
             const cleanTitle = item.title.replace(/'/g, "\\'");
             const cleanSubtitle = item.subtitle.replace(/'/g, "\\'");
-            combined.push(`<div id="${uid}" onclick="handleCardAction('${uid}','${cleanTitle}','${cleanSubtitle}','${item.price}','${item.image}','${cat.name}')" class="menu-card bg-[#131313] border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer"><div class="h-44 relative mb-4 bg-neutral-900 rounded-xl overflow-hidden"><img src="${item.image}" class="w-full h-full object-cover" onerror="this.src=resolveDynamicCulinaryAsset('${cleanTitle}');"></div><div><span class="text-[9px] text-yellow-500 uppercase font-bold">${cat.name}</span><h4 class="text-base font-black text-white uppercase">${item.title}</h4><p class="text-xs text-white/50">${item.subtitle}</p></div><div class="mt-4 bg-white/5 text-center text-xs py-3 rounded-xl font-black text-yellow-500">₹${item.price} - ORDER</div></div>`);
+            combined.push(`<div id="${uid}" onclick="handleCardAction('${uid}','${cleanTitle}','${cleanSubtitle}','${item.price}','${item.image}','${cat.name}')" class="menu-card bg-[#131313] border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer"><div class="h-44 relative mb-4 bg-neutral-900 rounded-xl overflow-hidden"><img src="${item.image}" class="w-full h-full object-cover" onerror="this.src=resolveDynamicCulinaryAsset('${cleanTitle}');"></div><div><span class="text-[9px] text-yellow-500 uppercase font-bold">${cat.name}</span><h4 class="text-base font-black text-white uppercase tracking-tight line-clamp-1">${item.title}</h4><p class="text-xs text-white/50 line-clamp-2 leading-relaxed">${item.subtitle}</p></div><div class="mt-4 bg-white/5 text-center text-xs py-3 rounded-xl font-black text-yellow-500">₹${item.price} - ORDER</div></div>`);
         });
     }
     document.getElementById('grid-items-container').innerHTML = combined.join('');
@@ -127,7 +124,7 @@ function openAdminPanel() {
     setTimeout(() => document.getElementById('admin-modal').classList.remove('opacity-0'), 10);
 }
 
-function closeAdminPanel() { document.getElementById('admin-modal').classList.add('opacity-0'); setTimeout(() => document.getElementById('admin-modal').classList.add('hidden'), 200); }
+function closeAdminPanel() { document.getElementById('admin-modal').classList.add('opacity-0'); setTimeout(() => document.getElementById('admin-modal').classList.add('hidden'), 200); globalActiveSourceImage = null; }
 
 function switchUploadMode(m) {
     uploadMode = m;
