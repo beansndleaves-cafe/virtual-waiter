@@ -4,14 +4,14 @@ const slideshowItems = [];
 
 // Automatic Initialization Layer: Decodes Obfuscated Keys globally if local storage is unconfigured
 (function initializeGlobalDefaultCredentials() {
-    const defaultGroq = "Z3NrX0lRVUFNdzhLRGUza3ZRSUowWkJOV0dkeWIzRll6MEFpWVI3czI2RWlyaElmZVRPVGw5Rm4=";
-    const defaultGemini = "QUl6YVN5QVpOZzhlR3ViLWdwSVdtaktHRzQwZk9zU3lMRER6aXRF";
+    const defaultGroq = "YOUR_BASE64_OBFUSCATED_GROQ_KEY";
+    const defaultGemini = "YOUR_BASE64_OBFUSCATED_GEMINI_KEY";
 
     if (!localStorage.getItem('beans_token_groq') && defaultGroq !== "YOUR_BASE64_OBFUSCATED_GROQ_KEY") {
-        localStorage.setItem('beans_token_groq', atob(defaultGroq));
+        localStorage.setItem('beans_token_groq', defaultGroq);
     }
     if (!localStorage.getItem('beans_token_gemini') && defaultGemini !== "YOUR_BASE64_OBFUSCATED_GEMINI_KEY") {
-        localStorage.setItem('beans_token_gemini', atob(defaultGemini));
+        localStorage.setItem('beans_token_gemini', defaultGemini);
     }
 })();
 
@@ -55,7 +55,9 @@ function renderGridItems() {
         if (currentActiveCategory !== 'all' && currentActiveCategory !== catKey) continue;
         cat.items.forEach(item => {
             const uid = `card-${idx++}`;
-            combined.push(`<div id="${uid}" onclick="handleCardAction('${uid}','${item.title.replace(/'/g, "\\'")}','${item.subtitle.replace(/'/g, "\\'")}','${item.price}','${item.image}','${cat.name}')" class="menu-card bg-[#131313] border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer"><div class="h-44 relative mb-4 bg-neutral-900 rounded-xl overflow-hidden"><img src="${item.image}" class="w-full h-full object-cover" onerror="this.src=resolveDynamicCulinaryAsset('${item.title.replace(/'/g, "\\'")}');"></div><div><span class="text-[9px] text-yellow-500 uppercase font-bold">${cat.name}</span><h4 class="text-base font-black text-white uppercase">${item.title}</h4><p class="text-xs text-white/50">${item.subtitle}</p></div><div class="mt-4 bg-white/5 text-center text-xs py-3 rounded-xl font-black text-yellow-500">₹${item.price} - ORDER</div></div>`);
+            const cleanTitle = item.title.replace(/'/g, "\\'");
+            const cleanSubtitle = item.subtitle.replace(/'/g, "\\'");
+            combined.push(`<div id="${uid}" onclick="handleCardAction('${uid}','${cleanTitle}','${cleanSubtitle}','${item.price}','${item.image}','${cat.name}')" class="menu-card bg-[#131313] border border-white/5 rounded-2xl overflow-hidden p-4 flex flex-col justify-between cursor-pointer"><div class="h-44 relative mb-4 bg-neutral-900 rounded-xl overflow-hidden"><img src="${item.image}" class="w-full h-full object-cover" onerror="this.src=resolveDynamicCulinaryAsset('${cleanTitle}');"></div><div><span class="text-[9px] text-yellow-500 uppercase font-bold">${cat.name}</span><h4 class="text-base font-black text-white uppercase">${item.title}</h4><p class="text-xs text-white/50">${item.subtitle}</p></div><div class="mt-4 bg-white/5 text-center text-xs py-3 rounded-xl font-black text-yellow-500">₹${item.price} - ORDER</div></div>`);
         });
     }
     document.getElementById('grid-items-container').innerHTML = combined.join('');
@@ -85,6 +87,23 @@ function openItemModal(t, s, p, img, cat) {
     document.getElementById('item-modal').classList.remove('hidden');
     setTimeout(() => document.getElementById('item-modal').classList.remove('opacity-0'), 10);
 }
+
+// Global loose-matching boundary function designed for VoiceService integration
+window.openItemModalFallback = function(itemName, fallbackPrice) {
+    let foundItem = null, foundCat = "";
+    const lowerName = itemName.toLowerCase().trim();
+    
+    for (const [key, cat] of Object.entries(menuData)) {
+        const match = cat.items.find(i => lowerName.includes(i.title.toLowerCase().trim()) || i.title.toLowerCase().trim().includes(lowerName));
+        if (match) { foundItem = match; foundCat = cat.name; break; }
+    }
+    
+    if (foundItem) {
+        openItemModal(foundItem.title, foundItem.subtitle, foundItem.price, foundItem.image, foundCat);
+    } else {
+        openItemModal(itemName, "Spoken Voice Order Request", fallbackPrice, "", "AI Match");
+    }
+};
 
 function closeItemModal() { document.getElementById('item-modal').classList.add('opacity-0'); setTimeout(() => document.getElementById('item-modal').classList.add('hidden'), 200); }
 
