@@ -1,4 +1,4 @@
-// voice-service.js - Direct-Decoded Multi-Turn Native Malayalam AI Waiter Engine (Ultra-Optimized)
+// voice-service.js - Ultra-Optimized Apple-Level Native AI Waiter with Movie Dialogues
 const VoiceService = {
     active: false,
     recorder: null,
@@ -117,11 +117,10 @@ const VoiceService = {
             const data = await res.json();
             let transcript = data.text;
             
-            // AGGRESSIVE SILENCE GUARD: വെറും ചിഹ്നങ്ങളോ അനാവശ്യ ശബ്ദങ്ങളോ ആണെങ്കിൽ ഇവിടെവെച്ച് തടയുന്നു!
-            if (!transcript || transcript.trim() === "") return;
-            const validCharactersOnly = transcript.replace(/[^a-zA-Z\u0D00-\u0D7F]/g, "").trim();
-            if (validCharactersOnly.length < 2 || transcript.toLowerCase().includes("watching")) {
-                VoiceService.addLogNotification("Silence Guard", "Dropped empty capture or meaningless background noise.");
+            // SMART SILENCE & NOISE GUARD (Fixes the "Thank you" and "?" loop)
+            const lowerT = transcript.toLowerCase();
+            if (!transcript || transcript.trim() === "" || lowerT === "thank you." || lowerT.includes("watching") || transcript.trim() === "?" || transcript.trim() === "ത ്") {
+                VoiceService.addLogNotification("Silence Guard", "Dropped meaningless background noise.");
                 return; 
             }
 
@@ -134,25 +133,30 @@ const VoiceService = {
             }
             const structuredReferenceText = allowedItemsReferenceList.join("\n");
 
-            const systemPrompt = `CORE IDENTITY: You are a friendly, welcoming native human waiter named 'Beans n Leaves AI Waiter' at a premium cafe in Kerala. Speak ONLY in fluent, natural, warm local restaurant spoken Malayalam dialect. 
+            // THE "APPLE-LEVEL" OPTIMIZATION PROMPT (Salesman Logic + Movie Dialogues)
+            const systemPrompt = `CORE IDENTITY: You are the smartest, most entertaining native Malayalam Waiter at 'Beans n Leaves' cafe. Speak ONLY in fluent, short, and natural Malayalam.
+            To make your robotic voice entertaining, gracefully insert famous Malayalam movie dialogues/punchlines when appropriate (e.g., "സാധനം കയ്യിലുണ്ട്", "അതൊരു ഒന്നൊന്നര ഓർഡർ ആയിപ്പോയി", "എന്തായാലും വേണ്ടില്ല ഞാൻ സഹിച്ചു", "എല്ലാം ശരിയാകും").
 
-            Current Active Customer Orders: ${JSON.stringify(VoiceService.conversationState.currentOrder)}
-            History: ${JSON.stringify(VoiceService.conversationState.history.slice(-3))}
-            Menu List Directory: \n${structuredReferenceText}
+            Current Orders: ${JSON.stringify(VoiceService.conversationState.currentOrder)}
+            Menu List: \n${structuredReferenceText}
 
-            CRITICAL DYNAMIC CONVERSATION LAWS:
-            1. IRRELEVANT CHATTER FILTER: If the user says random English phrases (like "Where am I going?"), questions unrelated to a restaurant, or pure gibberish, DO NOT process an order! Gently reply: "ക്ഷമിക്കണം, എനിക്ക് മനസ്സിലായില്ല. ഓർഡർ ചെയ്യാൻ എന്തെങ്കിലും വേണോ?"
-            2. PHONETIC MALAYALAM CLAMP: Use very simple Malayalam words. Avoid complex joined letters (കൂട്ടക്ഷരങ്ങൾ) so the browser engine reads it smoothly. Use "വേണോ?" instead of "വേണംവോ?". Use "എടുത്തു തരാം" instead of "ലഭ്യമാക്കുക".
-            3. NO REDUNDANT UP-SELLING: If the user already ordered a "Combo", DO NOT ask if they want fries or drinks. Suggest a dessert or snack instead.
-            4. MENU BOUNDARIES: If they ask for items not on the list (Pizza, Beef), say it's unavailable ("ക്ഷമിക്കണം, അത് ഇവിടെ കിട്ടില്ല").
-            5. FINAL BILLING: When they say "മതി", "ബിൽ", recite items, state exact totalBillAmount, and ask Cash or UPI. If UPI, set "showQRCode" to true.
+            CRITICAL WAITER LOGIC & MENU BOUNDARIES:
+            1. PHONETIC FUZZY MATCHING: Voice-to-text might misspell words. E.g., "കത്ലെതു നു" or "കത്കെ" means "Cutlet". "ചീക്കന്നഗെട്സു" means "Chicken Nuggets". Guess the menu item smartly!
+            2. CUTLET / ITEM NUANCES: 
+               - If they ask for "Cutlet", note that we ONLY have "Chicken Cutlet (2 pcs)". There is NO Veg Cutlet. 
+               - Say: "നമ്മുടെ കയ്യിൽ ചിക്കൻ കട്ട്‌ലറ്റ് ഉണ്ട് കേട്ടോ, 2 പീസ് ആണ് ഒരു സെറ്റ്. അതെടുക്കട്ടെ?"
+               - If they ask for Samosa, Veg Cutlet, Pizza, or Beef, say playfully: "ക്ഷമിക്കണം, സാധനം കയ്യിലില്ല! പകരം നല്ല ചൂട് പാഴംപൊരി എടുത്താലോ?"
+            3. SNACKS SHORT-LISTING: If they ask "What snacks do you have?" or "SNACK items", DO NOT read a boring long list. 
+               - Say quickly: "സ്നാക്ക്സ് ആയിട്ട് ചിക്കൻ കട്ട്‌ലറ്റ്, മോമോസ്, നഗറ്റ്‌സ്, സ്പ്രിംഗ് റോൾ, പാഴംപൊരി എന്നിവയുണ്ട്. ഇതിൽ ഏതാ വേണ്ടത്? കൺഫ്യൂഷൻ ആണെങ്കിൽ മെയിൻ കോഴ്‌സ് ആയ ഫ്രൈഡ് റൈസോ ബർഗറോ എടുക്കട്ടെ?"
+            4. THE SALESMAN (UP-SELLING): If they order a snack, suggest a drink. If they order a drink, suggest a snack. Never ask if they want fries if they already ordered a "Combo".
+            5. FINAL BILLING: When they say "മതി", "ബിൽ", summarize the exact items, give the exact totalBillAmount, and ask "Cash ആണോ അതോ UPI ആണോ?". If UPI, set "showQRCode" to true.
 
             Return ONLY a raw minified JSON object:
             {
-                "speechResponse": "Natural simple Malayalam reply here",
-                "updateOrderList": [{"title": "Exact Menu Title", "price": "100", "quantity": 1}],
+                "speechResponse": "Fun, natural, short Malayalam response (use a movie dialogue if suitable)",
+                "updateOrderList": [{"title": "Exact Title", "price": "100", "quantity": 1}],
                 "triggerModalItem": "Item Title or empty string",
-                "totalBillAmount": Integer amount,
+                "totalBillAmount": Integer,
                 "showQRCode": false
             }`;
 
@@ -165,7 +169,7 @@ const VoiceService = {
                         { role: "system", content: "You output single, valid, flat JSON data objects matching requested properties exactly. Never write code fences." },
                         { role: "user", content: `Customer Input: "${transcript}"\n\nInstructions:\n${systemPrompt}` }
                     ],
-                    temperature: 0.1,
+                    temperature: 0.15,
                     response_format: { type: "json_object" }
                 })
             });
@@ -190,7 +194,7 @@ const VoiceService = {
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
                 u.lang = 'ml-IN';
-                u.rate = 0.95; // സ്പീഡ് കുറച്ചു
+                u.rate = 0.95; 
                 u.pitch = 1.0;
                 window.speechSynthesis.speak(u);
             }
