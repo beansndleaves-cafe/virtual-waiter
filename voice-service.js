@@ -1,4 +1,4 @@
-// voice-service.js - Production-Ready Multi-Turn Native Malayalam AI Waiter Engine (Hyper-Tuned Phonetics)
+// voice-service.js - Direct-Decoded Multi-Turn Native Malayalam AI Waiter Engine (Ultra-Optimized)
 const VoiceService = {
     active: false,
     recorder: null,
@@ -9,7 +9,8 @@ const VoiceService = {
     conversationState: {
         currentOrder: [], 
         history: [], 
-        totalBillAmount: 0
+        totalBillAmount: 0,
+        step: "ordering" 
     },
     
     addLogNotification: (title, text, isError = false) => {
@@ -17,6 +18,7 @@ const VoiceService = {
         VoiceService.systemLogsCollection.push(`[${timestamp}] ${title.toUpperCase()}: ${text}`);
         const stackContainer = document.getElementById('voice-log-stack');
         if (!stackContainer) return;
+        
         const card = document.createElement('div');
         card.className = `p-3 rounded-xl border text-xs font-medium backdrop-blur-md transition-all duration-300 shadow-md ${
             isError ? 'bg-red-950/90 border-red-500/40 text-red-200' : 'bg-neutral-900/90 border-yellow-500/20 text-white/90'
@@ -28,17 +30,16 @@ const VoiceService = {
 
     copyDiagnosticsToClipboard: () => {
         const textToCopy = VoiceService.systemLogsCollection.join("\n");
-        navigator.clipboard.writeText(textToCopy).then(() => alert("Logs copied successfully!")).catch(() => alert("Clipboard block."));
+        navigator.clipboard.writeText(textToCopy).then(() => alert("Logs copied successfully!")).catch(() => alert("Clipboard block. Copy manually."));
     },
     
     toggle: async () => {
         const btn = document.getElementById('mic-assistant-btn');
         const overlay = document.getElementById('voice-diagnostic-overlay');
         
-        // BARGE-IN FEATURE: കസ്റ്റമർ വീണ്ടും ബട്ടൺ അമർത്തുമ്പോൾ പഴയ ബോട്ട് സംസാരം ഉടനടി നിർത്തുന്നു
         if (window.speechSynthesis && window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
-            VoiceService.addLogNotification("Barge-In", "AI Waiter speaking stopped immediately.");
+            VoiceService.addLogNotification("Barge-In", "AI Waiter speaking stopped immediately by user.");
         }
 
         if (!VoiceService.active) {
@@ -94,9 +95,10 @@ const VoiceService = {
 
     process: async (blob) => {
         if (typeof BEANS_STATIC_GROQ === 'undefined' || BEANS_STATIC_GROQ.includes("YOUR_BASE64")) {
-            VoiceService.addLogNotification("Error", "Paste your fresh raw Groq key into menu-data.js constants first.", true);
+            VoiceService.addLogNotification("Error", "Paste your fresh raw Groq key into menu-data.js constants.", true);
             return;
         }
+
         const groqDecoded = atob(BEANS_STATIC_GROQ).trim();
 
         try {
@@ -111,17 +113,16 @@ const VoiceService = {
                 headers: { 'Authorization': `Bearer ${groqDecoded}` },
                 body: fd
             });
-            if (!res.ok) throw new Error(`Groq Whisper HTTP Error: ${res.status}`);
+            if (!res.ok) throw new Error(`Groq Whisper Failure: Received HTTP ${res.status}`);
             const data = await res.json();
             let transcript = data.text;
             
+            // AGGRESSIVE SILENCE GUARD: വെറും ചിഹ്നങ്ങളോ അനാവശ്യ ശബ്ദങ്ങളോ ആണെങ്കിൽ ഇവിടെവെച്ച് തടയുന്നു!
             if (!transcript || transcript.trim() === "") return;
-
-            // SILENCE & BACKGROUND NOISE GUARD: തെറ്റായ ഫില്ലർ വാക്കുകളെ ഇവിടെ വെച്ച് പൂർണ്ണമായി തടയുന്നു
-            const lowerTranscript = transcript.toLowerCase();
-            if (lowerTranscript.includes("thank you for watching") || lowerTranscript.includes("watching") || transcript.trim() === "?") {
-                VoiceService.addLogNotification("Silence Guard", "Ambient backdrop noise filtered out.");
-                return;
+            const validCharactersOnly = transcript.replace(/[^a-zA-Z\u0D00-\u0D7F]/g, "").trim();
+            if (validCharactersOnly.length < 2 || transcript.toLowerCase().includes("watching")) {
+                VoiceService.addLogNotification("Silence Guard", "Dropped empty capture or meaningless background noise.");
+                return; 
             }
 
             transcript = transcript.replace(/[^\u0D00-\u0D7F\u0020-\u007Ea-zA-Z0-9\s?,.]/g, '').trim();
@@ -133,32 +134,25 @@ const VoiceService = {
             }
             const structuredReferenceText = allowedItemsReferenceList.join("\n");
 
-            // ലോജിക്കൽ വൈരുദ്ധ്യങ്ങൾ പൂർണ്ണമായി ഒഴിവാക്കിയും വോയ്‌സ് വ്യക്തമാക്കിയുമുള്ള പ്രോംപ്റ്റ് ക്ലാമ്പ്
             const systemPrompt = `CORE IDENTITY: You are a friendly, welcoming native human waiter named 'Beans n Leaves AI Waiter' at a premium cafe in Kerala. Speak ONLY in fluent, natural, warm local restaurant spoken Malayalam dialect. 
 
             Current Active Customer Orders: ${JSON.stringify(VoiceService.conversationState.currentOrder)}
-            Conversation History Context Logs: ${JSON.stringify(VoiceService.conversationState.history.slice(-3))}
-
-            Menu List Directory Reference (ONLY match items from here):
-            ${structuredReferenceText}
+            History: ${JSON.stringify(VoiceService.conversationState.history.slice(-3))}
+            Menu List Directory: \n${structuredReferenceText}
 
             CRITICAL DYNAMIC CONVERSATION LAWS:
-            1. PHONETIC MALAYALAM CLAMP (FOR BUILT-IN TTS ACCURACY):
-               - Write responses in clean, simple, properly spaced Malayalam words. Never combine syllables or use complex conjunct letters (കൂട്ടക്ഷരങ്ങൾ) which cause stuttering in tablet synthesis engines.
-               - Instead of writing formal machine words like "ആഹാരം", "ആഗ്രഹം", "ലഭ്യമാണ്", "സ്വീകരിച്ചു", "മാർഗ്ഗം", "ലഭ്യമാക്കുക", "താല്പര്യമുണ്ടോ", use words like "കഴിക്കാനായിട്ട്", "വേണം", "എടുത്തു തരാം", "ബിൽ തുക", "നോക്കട്ടെ", "തരാം".
-            2. NO REDUNDANT RECOMMENDATIONS:
-               - Look closely at "Current Active Customer Orders". If the user already ordered a "Combo" (like Student Combo, Double Burger Combo, etc.), it already has fries and a drink included! NEVER ask them if they want fries or cold coffee. Instead, ask if they want a tasty "Chicken Wrap" or "Chicken Momos" or some "Fresh Juice" alongside it.
-            3. STRICT MENU BOUNDARIES:
-               - If a customer mentions an item not on the menu list (like pizza, beef, fish fry), politely inform them in natural Malayalam that it's unavailable. Never suggest fried rice or ignore it. Example: "ക്ഷമിക്കണം കേട്ടോ, പിസ്സ ഇപ്പൊ ഇവിടെ കിട്ടില്ല."
-            4. ACCURATE FINAL BILLING FLOW:
-               - When they say "അത്രയും മതി", "ബിൽ എത്രയായി", summarize all ordered items, compute the accurate sum, state the real total amount in clear numbers, and ask if they prefer UPI or Cash. If UPI, state you are opening the QR code and set "showQRCode" to true. If they claim a false total (like 10,000), gently tell them the real total from the list computation.
+            1. IRRELEVANT CHATTER FILTER: If the user says random English phrases (like "Where am I going?"), questions unrelated to a restaurant, or pure gibberish, DO NOT process an order! Gently reply: "ക്ഷമിക്കണം, എനിക്ക് മനസ്സിലായില്ല. ഓർഡർ ചെയ്യാൻ എന്തെങ്കിലും വേണോ?"
+            2. PHONETIC MALAYALAM CLAMP: Use very simple Malayalam words. Avoid complex joined letters (കൂട്ടക്ഷരങ്ങൾ) so the browser engine reads it smoothly. Use "വേണോ?" instead of "വേണംവോ?". Use "എടുത്തു തരാം" instead of "ലഭ്യമാക്കുക".
+            3. NO REDUNDANT UP-SELLING: If the user already ordered a "Combo", DO NOT ask if they want fries or drinks. Suggest a dessert or snack instead.
+            4. MENU BOUNDARIES: If they ask for items not on the list (Pizza, Beef), say it's unavailable ("ക്ഷമിക്കണം, അത് ഇവിടെ കിട്ടില്ല").
+            5. FINAL BILLING: When they say "മതി", "ബിൽ", recite items, state exact totalBillAmount, and ask Cash or UPI. If UPI, set "showQRCode" to true.
 
-            Return ONLY a raw minified JSON object with keys 'speechResponse', 'updateOrderList', 'triggerModalItem', 'totalBillAmount', 'showQRCode':
+            Return ONLY a raw minified JSON object:
             {
-                "speechResponse": "കസ്റ്റമറോട് തിരിച്ചു പറയേണ്ട മറുപടി നാടൻ ഹോട്ടൽ ശൈലിയിൽ ലളിതമായി ഇവിടെ എഴുതുക",
-                "updateOrderList": [{"title": "Exact Item Title", "price": "100", "quantity": 1}],
-                "triggerModalItem": "Exact item title string to pop up on screen (or empty string)",
-                "totalBillAmount": "Total bill amount calculated accurately based on item additions",
+                "speechResponse": "Natural simple Malayalam reply here",
+                "updateOrderList": [{"title": "Exact Menu Title", "price": "100", "quantity": 1}],
+                "triggerModalItem": "Item Title or empty string",
+                "totalBillAmount": Integer amount,
                 "showQRCode": false
             }`;
 
@@ -187,7 +181,6 @@ const VoiceService = {
                 VoiceService.conversationState.currentOrder = [...VoiceService.conversationState.currentOrder, ...output.updateOrderList];
             }
             
-            // പ്രൊഡക്ഷൻ-ഗ്രേഡ് ടോട്ടൽ കാൽക്കുലേറ്റർ
             let computedTotal = 0;
             VoiceService.conversationState.currentOrder.forEach(item => {
                 computedTotal += parseInt(item.price) * (item.quantity || 1);
@@ -197,7 +190,7 @@ const VoiceService = {
             if (output.speechResponse) {
                 const u = new SpeechSynthesisUtterance(output.speechResponse);
                 u.lang = 'ml-IN';
-                u.rate = 0.96; // സ്പീച്ച് എഞ്ചിൻ വായിക്കുമ്പോൾ കൂടുതൽ മനുഷ്യസഹജമാകാൻ വേഗത ചെറുതായി കുറച്ചു
+                u.rate = 0.95; // സ്പീഡ് കുറച്ചു
                 u.pitch = 1.0;
                 window.speechSynthesis.speak(u);
             }
