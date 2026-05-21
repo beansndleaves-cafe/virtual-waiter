@@ -1,4 +1,4 @@
-// voice-service.js - Ultra-Optimized Apple-Level Native AI Waiter with Movie Dialogues
+// voice-service.js - Ultra-Optimized Apple-Level Native AI Waiter with Flawless Logic
 const VoiceService = {
     active: false,
     recorder: null,
@@ -30,7 +30,7 @@ const VoiceService = {
 
     copyDiagnosticsToClipboard: () => {
         const textToCopy = VoiceService.systemLogsCollection.join("\n");
-        navigator.clipboard.writeText(textToCopy).then(() => alert("Logs copied successfully!")).catch(() => alert("Clipboard block. Copy manually."));
+        navigator.clipboard.writeText(textToCopy).then(() => alert("Logs copied successfully!")).catch(() => alert("Clipboard block."));
     },
     
     toggle: async () => {
@@ -39,7 +39,7 @@ const VoiceService = {
         
         if (window.speechSynthesis && window.speechSynthesis.speaking) {
             window.speechSynthesis.cancel();
-            VoiceService.addLogNotification("Barge-In", "AI Waiter speaking stopped immediately by user.");
+            VoiceService.addLogNotification("Barge-In", "AI Waiter speaking stopped immediately.");
         }
 
         if (!VoiceService.active) {
@@ -75,7 +75,7 @@ const VoiceService = {
                 }
                 if (overlay) overlay.classList.remove('hidden');
                 document.getElementById('voice-live-preview-box').innerText = "സംസാരിക്കൂ...";
-                VoiceService.addLogNotification("Mic Status", "Recording pipeline tracking active.");
+                VoiceService.addLogNotification("Mic Status", "Recording active.");
             } catch (e) { alert("Microphone connection failed: " + e.message); }
         } else {
             VoiceService.active = false;
@@ -88,7 +88,7 @@ const VoiceService = {
             if (VoiceService.liveRecognizer) VoiceService.liveRecognizer.stop();
             if (VoiceService.recorder && VoiceService.recorder.state !== "inactive") {
                 VoiceService.recorder.stop();
-                VoiceService.addLogNotification("Mic Status", "Voice packet pipeline closed.");
+                VoiceService.addLogNotification("Mic Status", "Voice closed.");
             }
         }
     },
@@ -102,7 +102,7 @@ const VoiceService = {
         const groqDecoded = atob(BEANS_STATIC_GROQ).trim();
 
         try {
-            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Uploading voice stream to Groq Cloud API...");
+            VoiceService.addLogNotification("Step 1/2: Whisper STT", "Uploading to Groq Cloud...");
             const fd = new FormData();
             fd.append('file', blob, 'audio.webm');
             fd.append('model', 'whisper-large-v3');
@@ -113,19 +113,22 @@ const VoiceService = {
                 headers: { 'Authorization': `Bearer ${groqDecoded}` },
                 body: fd
             });
-            if (!res.ok) throw new Error(`Groq Whisper Failure: Received HTTP ${res.status}`);
+            if (!res.ok) throw new Error(`Groq Whisper Failure: HTTP ${res.status}`);
             const data = await res.json();
             let transcript = data.text;
             
-            // SMART SILENCE & NOISE GUARD (Fixes the "Thank you" and "?" loop)
+            // AGGRESSIVE SILENCE & GIBBERISH GUARD
+            if (!transcript) return;
+            let strictClean = transcript.replace(/[^\u0D00-\u0D7F\a-zA-Z0-9]/g, '');
             const lowerT = transcript.toLowerCase();
-            if (!transcript || transcript.trim() === "" || lowerT === "thank you." || lowerT.includes("watching") || transcript.trim() === "?" || transcript.trim() === "ത ്") {
-                VoiceService.addLogNotification("Silence Guard", "Dropped meaningless background noise.");
+            
+            if (strictClean.length < 2 || lowerT.includes("watching") || lowerT.includes("thank you")) {
+                VoiceService.addLogNotification("Silence Guard", "Dropped meaningless noise / mic hallucination.");
                 return; 
             }
 
-            transcript = transcript.replace(/[^\u0D00-\u0D7F\u0020-\u007Ea-zA-Z0-9\s?,.]/g, '').trim();
-            VoiceService.addLogNotification("Step 2/2: LLaMA Brain", `Transcript Input: "${transcript}"`);
+            transcript = transcript.replace(/[^\u0D00-\u0D7F\u0020-\u007Ea-zA-Z0-9\s]/g, '').trim();
+            VoiceService.addLogNotification("Step 2/2: LLaMA Brain", `Input: "${transcript}"`);
 
             let allowedItemsReferenceList = [];
             for (const [key, category] of Object.entries(menuData)) {
@@ -133,30 +136,37 @@ const VoiceService = {
             }
             const structuredReferenceText = allowedItemsReferenceList.join("\n");
 
-            // THE "APPLE-LEVEL" OPTIMIZATION PROMPT (Salesman Logic + Movie Dialogues)
-            const systemPrompt = `CORE IDENTITY: You are the smartest, most entertaining native Malayalam Waiter at 'Beans n Leaves' cafe. Speak ONLY in fluent, short, and natural Malayalam.
-            To make your robotic voice entertaining, gracefully insert famous Malayalam movie dialogues/punchlines when appropriate (e.g., "സാധനം കയ്യിലുണ്ട്", "അതൊരു ഒന്നൊന്നര ഓർഡർ ആയിപ്പോയി", "എന്തായാലും വേണ്ടില്ല ഞാൻ സഹിച്ചു", "എല്ലാം ശരിയാകും").
+            // THE MASTER PROMPT (Fixing Pasta, Cutlet Veg/Chicken, Math, and Repetitions)
+            const systemPrompt = `CORE IDENTITY: You are an intelligent, natural-speaking Malayalam AI Waiter at 'Beans n Leaves'. Speak ONLY in short, native Malayalam. Do not act like a robot.
 
             Current Orders: ${JSON.stringify(VoiceService.conversationState.currentOrder)}
+            Conversation History: ${JSON.stringify(VoiceService.conversationState.history.slice(-3))}
+
             Menu List: \n${structuredReferenceText}
 
-            CRITICAL WAITER LOGIC & MENU BOUNDARIES:
-            1. PHONETIC FUZZY MATCHING: Voice-to-text might misspell words. E.g., "കത്ലെതു നു" or "കത്കെ" means "Cutlet". "ചീക്കന്നഗെട്സു" means "Chicken Nuggets". Guess the menu item smartly!
-            2. CUTLET / ITEM NUANCES: 
-               - If they ask for "Cutlet", note that we ONLY have "Chicken Cutlet (2 pcs)". There is NO Veg Cutlet. 
-               - Say: "നമ്മുടെ കയ്യിൽ ചിക്കൻ കട്ട്‌ലറ്റ് ഉണ്ട് കേട്ടോ, 2 പീസ് ആണ് ഒരു സെറ്റ്. അതെടുക്കട്ടെ?"
-               - If they ask for Samosa, Veg Cutlet, Pizza, or Beef, say playfully: "ക്ഷമിക്കണം, സാധനം കയ്യിലില്ല! പകരം നല്ല ചൂട് പാഴംപൊരി എടുത്താലോ?"
-            3. SNACKS SHORT-LISTING: If they ask "What snacks do you have?" or "SNACK items", DO NOT read a boring long list. 
-               - Say quickly: "സ്നാക്ക്സ് ആയിട്ട് ചിക്കൻ കട്ട്‌ലറ്റ്, മോമോസ്, നഗറ്റ്‌സ്, സ്പ്രിംഗ് റോൾ, പാഴംപൊരി എന്നിവയുണ്ട്. ഇതിൽ ഏതാ വേണ്ടത്? കൺഫ്യൂഷൻ ആണെങ്കിൽ മെയിൻ കോഴ്‌സ് ആയ ഫ്രൈഡ് റൈസോ ബർഗറോ എടുക്കട്ടെ?"
-            4. THE SALESMAN (UP-SELLING): If they order a snack, suggest a drink. If they order a drink, suggest a snack. Never ask if they want fries if they already ordered a "Combo".
-            5. FINAL BILLING: When they say "മതി", "ബിൽ", summarize the exact items, give the exact totalBillAmount, and ask "Cash ആണോ അതോ UPI ആണോ?". If UPI, set "showQRCode" to true.
+            CRITICAL RULES (MUST FOLLOW):
+            1. REPETITION & CONFIRMATION LOGIC:
+               - If the user confirms an order (e.g., "ok", "take it", "ഇഡുതോളോ", "ശരി"), DO NOT repeat your previous pitch. Acknowledge it instantly: "ഓക്കേ സെറ്റ്! ഓർഡറിൽ ചേർത്തിട്ടുണ്ട്. വേറെ എന്തെങ്കിലും എടുക്കട്ടേ?".
+               - ONLY add items to 'updateOrderList' if they are NEWLY requested in this turn.
+            2. MENU HALLUCINATION STRICT BAN (PASTA/PIZZA ETC):
+               - If a user asks for PASTA, PIZZA, SHAWARMA, ALFAHAM, or ANY item NOT in the Menu List, you MUST decline playfully: "ക്ഷമിക്കണം, സാധനം കയ്യിലില്ല! പാസ്ത/പിസ്സ ഞങ്ങളുടെ മെനുവിൽ ഇല്ല. പകരം നല്ല ഫ്രൈഡ് റൈസോ ബർഗറോ എടുത്താലോ?". NEVER say it is available.
+            3. SNACKS (VEG/CHICKEN HIDDEN OPTIONS):
+               - We have BOTH Veg and Chicken options for most snacks (Cutlet, Momos, Spring Roll, Samosa, Nuggets).
+               - If they ask for "Cutlet" or any snack, you MUST ask: "വെജ് ആണോ അതോ ചിക്കൻ ആണോ വേണ്ടത്?".
+            4. GENERAL INQUIRY ("What do you have?"):
+               - If asked "മെനുവിൽ എന്തൊക്കെയുണ്ട്?", DO NOT list everything. Say: "ഞങ്ങളുടെ പക്കൽ പലതരം ബർഗർ, ഫ്രൈഡ് റൈസ്, സ്നാക്ക്സ്, ഷെയ്ക്കുകൾ എന്നിവയുണ്ട്. എന്താണ് വേണ്ടത്?".
+            5. CONTEXTUAL MOVIE DIALOGUES:
+               - ONLY use "അതൊരു ഒന്നൊന്നര ഓർഡർ ആയിപ്പോയി!" for HUGE orders or multiple combos. Do NOT use it for small snacks.
+               - For simple items use "ഓക്കേ സെറ്റ്!".
+            6. FLAWLESS FINAL BILLING:
+               - When the user asks "ബിൽ", "Bill amount", summarize the items. 
+               - ALWAYS use the exact string <TOTAL> when speaking the bill amount (e.g., "നിങ്ങളുടെ ആകെ തുക <TOTAL> രൂപയാണ്. Cash ആണോ UPI ആണോ?"). The system will calculate and replace <TOTAL> automatically.
 
             Return ONLY a raw minified JSON object:
             {
-                "speechResponse": "Fun, natural, short Malayalam response (use a movie dialogue if suitable)",
-                "updateOrderList": [{"title": "Exact Title", "price": "100", "quantity": 1}],
-                "triggerModalItem": "Item Title or empty string",
-                "totalBillAmount": Integer,
+                "speechResponse": "Natural Malayalam reply (use <TOTAL> if mentioning bill sum)",
+                "updateOrderList": [{"title": "Exact Menu Title", "price": "100", "quantity": 1}],
+                "triggerModalItem": "Menu item title or empty string",
                 "showQRCode": false
             }`;
 
@@ -169,7 +179,7 @@ const VoiceService = {
                         { role: "system", content: "You output single, valid, flat JSON data objects matching requested properties exactly. Never write code fences." },
                         { role: "user", content: `Customer Input: "${transcript}"\n\nInstructions:\n${systemPrompt}` }
                     ],
-                    temperature: 0.15,
+                    temperature: 0.1,
                     response_format: { type: "json_object" }
                 })
             });
@@ -178,21 +188,30 @@ const VoiceService = {
             const cleanText = chatData.choices[0].message.content.trim();
             const output = JSON.parse(cleanText);
 
-            VoiceService.addLogNotification("Pipeline Complete", JSON.stringify(output));
-            
-            VoiceService.conversationState.history.push({ user: transcript, assistant: output.speechResponse });
+            // JAVASCRIPT MATH CALCULATOR (100% Accurate)
+            let computedTotal = VoiceService.conversationState.totalBillAmount;
             if (output.updateOrderList && output.updateOrderList.length > 0) {
+                // പുതിയ ഓർഡറുകൾ മെമ്മറിയിലേക്ക് ചേർക്കുന്നു
                 VoiceService.conversationState.currentOrder = [...VoiceService.conversationState.currentOrder, ...output.updateOrderList];
+                // ആകെ തുക കൃത്യമായി കണക്കാക്കുന്നു
+                output.updateOrderList.forEach(item => {
+                    computedTotal += parseInt(item.price) * (item.quantity || 1);
+                });
+                VoiceService.conversationState.totalBillAmount = computedTotal;
             }
-            
-            let computedTotal = 0;
-            VoiceService.conversationState.currentOrder.forEach(item => {
-                computedTotal += parseInt(item.price) * (item.quantity || 1);
-            });
-            VoiceService.conversationState.totalBillAmount = computedTotal;
 
-            if (output.speechResponse) {
-                const u = new SpeechSynthesisUtterance(output.speechResponse);
+            // <TOTAL> എന്ന പദം മാറ്റി കൃത്യമായ തുക നൽകുന്നു
+            let finalSpeech = output.speechResponse;
+            if (finalSpeech.includes("<TOTAL>")) {
+                finalSpeech = finalSpeech.replace("<TOTAL>", computedTotal.toString());
+            }
+
+            VoiceService.addLogNotification("Pipeline Complete", `Reply: ${finalSpeech}`);
+            VoiceService.conversationState.history.push({ user: transcript, assistant: finalSpeech });
+
+            // സ്പീച്ച് എഞ്ചിൻ
+            if (finalSpeech) {
+                const u = new SpeechSynthesisUtterance(finalSpeech);
                 u.lang = 'ml-IN';
                 u.rate = 0.95; 
                 u.pitch = 1.0;
